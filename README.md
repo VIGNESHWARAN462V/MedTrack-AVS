@@ -321,6 +321,124 @@ npm run build
 
 ---
 
+## Cloud Production Deployment (Railway + Vercel)
+
+MedTrack – AVS is engineered for zero-downtime, independent cloud deployment separating the stateless Spring Boot API from the Single Page Application on Vercel.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Hospital Operator
+    participant Vercel as Vercel (React 19 SPA)
+    participant Railway as Railway (Spring Boot API)
+    participant MySQL as Railway MySQL (Private Network)
+    participant Google as Google Identity (OAuth 2.0)
+    participant Gemini as Google AI (Gemini 3.8 Flash)
+
+    User->>Vercel: Loads https://your-app.vercel.app
+    Vercel->>Railway: GET /api/assets (Bearer JWT)
+    Railway->>MySQL: Query DB via private internal network
+    MySQL-->>Railway: Return asset records
+    Railway-->>Vercel: JSON telemetry payload
+    User->>Vercel: "Sign in with Google"
+    Vercel->>Railway: GET /oauth2/authorization/google
+    Railway->>Google: Redirect to accounts.google.com
+    Google-->>Railway: Callback to /login/oauth2/code/google
+    Railway-->>Vercel: Redirect to /auth/callback?code=...
+    Vercel->>Railway: POST /api/auth/oauth2/exchange
+    Railway-->>Vercel: Issues HS384 Bearer Token
+    User->>Vercel: Asks question to AI Assistant
+    Vercel->>Railway: POST /api/ai/chat
+    Railway->>Gemini: Grounds prompt via allowlisted tools (x-goog-api-key)
+    Gemini-->>Railway: AI operational response
+    Railway-->>Vercel: Return verified answer
+```
+
+### Step 1: Deploy MySQL Database on Railway
+
+1. Log into your [Railway](https://railway.com/) dashboard.
+2. Click **New Project** &rarr; **Provision MySQL**.
+3. Railway will provision a managed MySQL instance on its private network.
+4. Note the internal service connection details (`MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE`).
+
+### Step 2: Deploy Spring Boot Backend on Railway
+
+1. In the same Railway project, click **New** &rarr; **GitHub Repo** &rarr; Select `VIGNESHWARAN462V/MedTrack-AVS`.
+2. Go to **Settings**:
+   - **Root Directory**: `backend/medtrack-api`
+   - **Build Command**: Uses multi-stage `Dockerfile` (or Railway Nixpacks Maven 3.9 + OpenJDK 21).
+   - **Healthcheck Path**: `/api/health`
+3. Connect the MySQL database to the backend service:
+   - In Railway, click **Variables** &rarr; **Add Reference Variable** to import `MYSQLHOST`, `MYSQLPORT`, `MYSQLUSER`, `MYSQLPASSWORD`, `MYSQLDATABASE` from your MySQL service.
+4. Add the required private environment variables in the Railway backend service:
+
+| Variable | Required | Description / Example |
+| :--- | :---: | :--- |
+| `PORT` | Auto | Automatically supplied by Railway (app binds to `${PORT}`) |
+| `JWT_SECRET` | **YES** | 384-bit Base64 signing key (generate: `openssl rand -base64 48`) |
+| `JWT_EXPIRATION_MS` | Optional | E.g. `86400000` (24 hours) |
+| `CORS_ALLOWED_ORIGINS` | **YES** | `https://your-medtrack-app.vercel.app` (your Vercel URL, NO trailing slash) |
+| `OAUTH2_REDIRECT_URI` | Optional | `https://your-medtrack-app.vercel.app/auth/callback` |
+| `GOOGLE_CLIENT_ID` | Optional | Google OAuth client ID (from Google Cloud Console) |
+| `GOOGLE_CLIENT_SECRET` | Optional | Google OAuth client secret |
+| `MEDTRACK_ADMIN_EMAILS`| Optional | Admin allowlist, e.g. `admin@hospital.org` |
+| `AI_PROVIDER` | Optional | `GEMINI` |
+| `AI_API_KEY` | Optional | Private Google Gemini API key |
+| `AI_MODEL` | Optional | `gemini-3.8-flash` |
+| `MEDTRACK_DEV_ADMIN_PASSWORD` | Optional | Password for seed admin account |
+
+5. Under **Settings** &rarr; **Networking**, click **Generate Domain** (e.g. `https://medtrack-api-production.up.railway.app`).
+6. Test your live backend health:
+   ```bash
+   curl -I https://your-railway-domain.up.railway.app/api/health
+   # Returns: HTTP/2 200
+   ```
+
+### Step 3: Deploy React Frontend on Vercel
+
+1. Log into your [Vercel](https://vercel.com/) dashboard.
+2. Click **Add New** &rarr; **Project** &rarr; Import `VIGNESHWARAN462V/MedTrack-AVS`.
+3. In Project Settings:
+   - **Framework Preset**: `Vite`
+   - **Root Directory**: `./` (project root)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+4. Add Environment Variables:
+
+| Variable | Required | Value |
+| :--- | :---: | :--- |
+| `VITE_API_BASE_URL` | **YES** | `https://your-railway-domain.up.railway.app` (NO trailing slash) |
+
+5. Click **Deploy**. Vercel will build the frontend and deploy it to a URL like `https://medtrack-avs.vercel.app`.
+6. React Router deep-links (`/login`, `/dashboard`, `/scan-qr`, `/ai-assistant`) are automatically resolved via `vercel.json`.
+
+### Step 4: Finalize Cross-Origin & OAuth2 Settings
+
+Once both URLs are known:
+1. **In Railway Backend Variables**:
+   - Update `CORS_ALLOWED_ORIGINS` to your exact Vercel URL:
+     ```
+     CORS_ALLOWED_ORIGINS=https://medtrack-avs.vercel.app
+     ```
+   - Update `OAUTH2_REDIRECT_URI` to:
+     ```
+     OAUTH2_REDIRECT_URI=https://medtrack-avs.vercel.app/auth/callback
+     ```
+   - Railway will automatically redeploy the backend with the new configuration.
+
+### Step 5: Update Google Cloud Console Credentials (OAuth 2.0)
+
+When Google Sign-In is enabled:
+1. Navigate to the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Edit your **OAuth 2.0 Client ID** (Web application).
+3. **Authorized JavaScript origins**:
+   - Add your Vercel frontend URL: `https://medtrack-avs.vercel.app`
+4. **Authorized redirect URIs**:
+   - Add your Railway backend callback: `https://your-railway-domain.up.railway.app/login/oauth2/code/google`
+5. Save changes. Google OAuth authentication will now work seamlessly in production.
+
+---
+
 ## Troubleshooting Guide
 
 - **Backend Fails to Start (`IllegalStateException: JWT signing secret`)**:

@@ -22,7 +22,7 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
     private final AuthService authService;
     private final HttpCookieOAuth2AuthorizationRequestRepository cookieAuthorizationRequestRepository;
 
-    @Value("${medtrack.oauth2.redirect-uri:https://localhost:5173/auth/callback}")
+    @Value("${medtrack.oauth2.redirect-uri:http://localhost:5173/auth/callback}")
     private String redirectUri;
 
     @Override

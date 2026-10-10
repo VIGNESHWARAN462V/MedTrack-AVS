@@ -1,5 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import { TOKEN_STORAGE_KEY } from '../context/AuthContext';
+import { getWebSocketBrokerUrl } from './apiConfig';
 
 /**
  * Connection states for UI indicators
@@ -22,13 +23,10 @@ class TrackingSocketService {
   }
 
   /**
-   * Determine authoritative WebSocket/STOMP broker URL based on current origin.
+   * Determine authoritative WebSocket/STOMP broker URL based on configured backend.
    */
   getBrokerUrl() {
-    const isHttps = typeof window !== 'undefined' && window.location.protocol === 'https:';
-    const host = typeof window !== 'undefined' ? window.location.host : 'localhost:5173';
-    const proto = isHttps ? 'wss:' : 'ws:';
-    return `${proto}//${host}/ws`;
+    return getWebSocketBrokerUrl();
   }
 
   /**

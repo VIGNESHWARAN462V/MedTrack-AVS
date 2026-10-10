@@ -25,6 +25,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -101,21 +102,26 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(Arrays.asList(
-                "http://localhost:*",
-                "https://localhost:*",
-                "http://127.0.0.1:*",
-                "https://127.0.0.1:*",
-                "http://10.*:*",
-                "https://10.*:*",
-                "http://172.*:*",
-                "https://172.*:*",
-                "http://192.168.*:*",
-                "https://192.168.*:*",
-                "https://*.trycloudflare.com",
-                "https://*.loca.lt",
-                "*"
-        ));
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+
+        if (origins.contains("*")) {
+            configuration.setAllowedOriginPatterns(Arrays.asList(
+                    "http://localhost:*",
+                    "https://localhost:*",
+                    "http://127.0.0.1:*",
+                    "https://127.0.0.1:*",
+                    "https://*.vercel.app",
+                    "https://*.trycloudflare.com",
+                    "https://*.loca.lt",
+                    "*"
+            ));
+        } else {
+            configuration.setAllowedOrigins(origins);
+        }
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);

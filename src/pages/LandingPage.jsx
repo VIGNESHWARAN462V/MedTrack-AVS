@@ -2,20 +2,26 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 
-const LANDING_STRUCTURED_DATA = {
-  '@context': 'https://schema.org',
-  '@type': 'MedicalOrganization',
-  name: 'MedTrack – AVS',
-  description: 'Real-time hospital asset tracking system and mobile medical equipment geolocation dashboard utilizing QR identification, physical GPS telemetry, and live geofencing.',
-  url: 'https://localhost:5173/',
-  logo: 'https://localhost:5173/medtrack-logo.svg',
-  knowsAbout: [
-    'Hospital Asset Tracking',
-    'Medical Equipment Geolocation',
-    'Indoor Navigation Mesh',
-    'Clinical Handoff Friction Index',
-    'Asset Movement Continuity',
-  ],
+const getLandingStructuredData = () => {
+  const origin =
+    (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SITE_URL) ||
+    (typeof window !== 'undefined' ? window.location.origin : 'https://medtrack-avs.vercel.app');
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'MedicalOrganization',
+    name: 'MedTrack – AVS',
+    description: 'Real-time hospital asset tracking system and mobile medical equipment geolocation dashboard utilizing QR identification, physical GPS telemetry, and live geofencing.',
+    url: `${origin}/`,
+    logo: `${origin}/medtrack-logo.svg`,
+    knowsAbout: [
+      'Hospital Asset Tracking',
+      'Medical Equipment Geolocation',
+      'Indoor Navigation Mesh',
+      'Clinical Handoff Friction Index',
+      'Asset Movement Continuity',
+    ],
+  };
 };
 
 export default function LandingPage() {
@@ -25,7 +31,7 @@ export default function LandingPage() {
         title="MedTrack – AVS | Hospital Asset Tracking & Geolocation Dashboard"
         description="Real-time hospital asset tracking system and mobile medical equipment geolocation dashboard utilizing QR identification, physical GPS telemetry, and live geofencing."
         canonicalPath="/"
-        structuredData={LANDING_STRUCTURED_DATA}
+        structuredData={getLandingStructuredData()}
       />
       {/* Public Landing Navigation Bar */}
       <header className="app-header d-flex align-items-center justify-content-between px-3 px-lg-5">

@@ -1,5 +1,7 @@
+import { buildApiUrl } from './apiConfig';
+
 // MedTrack – AVS Authentication Service
-const API_BASE_URL = '/api/auth';
+const API_BASE_URL = buildApiUrl('/api/auth');
 
 /**
  * Handle API responses consistently
@@ -94,5 +96,12 @@ export const authService = {
       body: JSON.stringify({ code }),
     });
     return handleResponse(response);
+  },
+
+  /**
+   * Get full URL to trigger Google OAuth2 flow on the backend
+   */
+  getGoogleOAuthUrl() {
+    return buildApiUrl('/oauth2/authorization/google');
   },
 };

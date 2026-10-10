@@ -9,6 +9,8 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import java.util.Arrays;
+
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
@@ -19,16 +21,37 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Value("${medtrack.cors.allowed-origins:http://localhost:5173,http://127.0.0.1:5173}")
     private String allowedOrigins;
 
+    private String[] parseAllowedOrigins() {
+        if (allowedOrigins == null || allowedOrigins.trim().isEmpty() || allowedOrigins.contains("*")) {
+            return new String[] {
+                    "http://localhost:*",
+                    "https://localhost:*",
+                    "http://127.0.0.1:*",
+                    "https://127.0.0.1:*",
+                    "https://*.vercel.app",
+                    "https://*.trycloudflare.com",
+                    "https://*.loca.lt",
+                    "*"
+            };
+        }
+        return Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
+    }
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        String[] patterns = parseAllowedOrigins();
+
         // Standard STOMP endpoint with SockJS fallback
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*")
+                .setAllowedOriginPatterns(patterns)
                 .withSockJS();
 
         // Direct WebSocket endpoint without SockJS
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOriginPatterns(patterns);
     }
 
     @Override

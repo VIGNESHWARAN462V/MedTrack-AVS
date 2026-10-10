@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { authService } from '../services/authService';
 import SEO from '../components/common/SEO';
 
 export default function Login() {
@@ -40,7 +41,7 @@ export default function Login() {
 
   const handleGoogleSignIn = () => {
     // Start real Spring Security OAuth2 authorization flow
-    window.location.href = '/oauth2/authorization/google';
+    window.location.href = authService.getGoogleOAuthUrl();
   };
 
   return (

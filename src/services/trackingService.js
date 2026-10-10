@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { TOKEN_STORAGE_KEY } from '../context/AuthContext';
+import { buildApiUrl } from './apiConfig';
 
-const API_BASE_URL = '/api/tracking';
+const API_BASE_URL = buildApiUrl('/api/tracking');
 
 // Axios instance with interceptor to attach JWT token
 const api = axios.create({

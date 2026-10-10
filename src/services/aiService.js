@@ -1,7 +1,8 @@
 import axios from 'axios';
 import { TOKEN_STORAGE_KEY } from '../context/AuthContext';
+import { buildApiUrl } from './apiConfig';
 
-const API_BASE_URL = '/api/ai';
+const API_BASE_URL = buildApiUrl('/api/ai');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
