@@ -1,0 +1,20 @@
+# Environment and secrets
+.env
+.env.*
+.env*.local
+!**/.env.example
+
+# Maven build artifacts
+target/
+*.jar
+*.war
+*.class
+
+# Logs
+logs/
+*.log
+
+# Editor and IDE
+.vscode/
+.idea/
+*.iml

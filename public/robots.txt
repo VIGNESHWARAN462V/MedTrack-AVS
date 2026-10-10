@@ -1,0 +1,22 @@
+# ==============================================================================
+# MedTrack – AVS: Search Engine Crawl Directives (Phase 20)
+# Allows public informational pages, disallows private operational consoles and APIs.
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /about
+Disallow: /dashboard
+Disallow: /assets
+Disallow: /live-tracking
+Disallow: /scan-qr
+Disallow: /transfers
+Disallow: /analytics
+Disallow: /alerts
+Disallow: /settings
+Disallow: /auth/
+Disallow: /login
+Disallow: /register
+Disallow: /api/
+
+Sitemap: /sitemap.xml

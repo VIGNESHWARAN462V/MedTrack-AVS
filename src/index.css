@@ -1,0 +1,575 @@
+/* MedTrack – AVS Core Design System */
+/* Integrated with Bootstrap 5 and Stitch Healthcare-Tech SaaS Tokens */
+
+:root {
+  --primary: #005c55;
+  --primary-hover: #004b45;
+  --primary-container: #0f766e;
+  --primary-container-hover: #0d655e;
+  --on-primary: #ffffff;
+  --on-primary-container: #a3faef;
+
+  --secondary: #006b5f;
+  --secondary-hover: #00564d;
+  --secondary-container: #e6f9f5;
+  --on-secondary-container: #006f64;
+
+  --tertiary: #005777;
+  --tertiary-container: #d4edff;
+  --on-tertiary-container: #004c69;
+  --sky-blue: #38bdf8;
+
+  --surface: #f7f9fb;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f2f4f6;
+  --surface-container: #eceef0;
+  --surface-container-high: #e6e8ea;
+  --surface-variant: #e0e3e5;
+
+  --on-surface: #191c1e;
+  --on-surface-variant: #3e4947;
+  --outline: #6e7977;
+  --outline-variant: #cbd5e1;
+
+  --error: #ba1a1a;
+  --error-container: #ffdad6;
+  --on-error-container: #93000a;
+
+  --success: #15803d;
+  --success-container: #dcfce7;
+  --on-success-container: #14532d;
+
+  --card-radius: 16px;
+  --control-radius: 10px;
+  --pill-radius: 9999px;
+
+  --shadow-soft: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 1px 3px rgba(0, 0, 0, 0.03);
+  --shadow-hover: 0 10px 25px -4px rgba(15, 23, 42, 0.08), 0 4px 8px rgba(0, 0, 0, 0.03);
+
+  --font-family-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-display: 'Plus Jakarta Sans', 'Inter', sans-serif;
+}
+
+body {
+  font-family: var(--font-family-sans);
+  background-color: var(--surface);
+  color: var(--on-surface);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-family-display);
+  color: var(--on-surface);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+/* Material Symbols sizing & baseline */
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+  line-height: 1;
+}
+
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: 4px;
+}
+
+/* Shell Layout */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  background-color: var(--surface);
+  position: relative;
+}
+
+.app-header {
+  height: 64px;
+  background: rgba(247, 249, 251, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--surface-variant);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.app-main-layout {
+  display: flex;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  padding-top: 64px;
+  position: relative;
+}
+
+/* Desktop Sidebar */
+.app-sidebar {
+  width: 270px;
+  min-width: 270px;
+  max-width: 270px;
+  flex: 0 0 270px;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  background-color: var(--surface-container-lowest);
+  border-right: 1px solid var(--surface-variant);
+  box-shadow: 1px 0 0 rgba(0, 0, 0, 0.03);
+  z-index: 990;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-content {
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  min-height: calc(100vh - 64px);
+  background-color: var(--surface);
+  overflow-x: hidden;
+}
+
+/* Mobile & Tablet Drawer (< 992px) */
+@media (max-width: 991.98px) {
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(280px, 82vw);
+    min-width: 0;
+    max-width: 280px;
+    flex: none;
+    height: 100vh;
+    height: 100dvh;
+    transform: translateX(-100%);
+    z-index: 1200;
+    box-shadow: none;
+    background-color: var(--surface-container-lowest);
+    padding-top: max(16px, env(safe-area-inset-top));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .app-sidebar.show-mobile {
+    transform: translateX(0);
+    box-shadow: 6px 0 28px rgba(15, 23, 42, 0.25);
+  }
+  .app-content {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0 !important;
+  }
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 1100;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar-close-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Utilities */
+.min-w-0 {
+  min-width: 0 !important;
+}
+
+.max-w-100 {
+  max-width: 100% !important;
+}
+
+/* Sidebar Nav Items */
+.nav-stitch-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--on-surface-variant);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.915rem;
+  transition: all 0.15s ease;
+  margin-bottom: 3px;
+  white-space: nowrap;
+}
+
+.nav-stitch-link:hover {
+  background-color: var(--surface-container-low);
+  color: var(--on-surface);
+}
+
+.nav-stitch-link.active {
+  background-color: var(--primary-container);
+  color: var(--on-primary);
+  font-weight: 600;
+}
+
+.nav-stitch-link.active .material-symbols-outlined {
+  color: var(--on-primary);
+}
+
+/* Card System */
+.stitch-card {
+  background-color: var(--surface-container-lowest);
+  border-radius: var(--card-radius);
+  border: 1px solid rgba(224, 227, 229, 0.6);
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.stitch-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Primary Button */
+.btn-stitch-primary {
+  background-color: var(--primary-container);
+  color: var(--on-primary);
+  border: none;
+  border-radius: var(--control-radius);
+  padding: 9px 18px;
+  font-family: var(--font-family-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-stitch-primary:hover, .btn-stitch-primary:focus {
+  background-color: var(--primary-container-hover);
+  color: var(--on-primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.2);
+}
+
+.btn-stitch-secondary {
+  background-color: var(--surface-container);
+  color: var(--on-surface);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--control-radius);
+  padding: 8px 16px;
+  font-family: var(--font-family-display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+
+.btn-stitch-secondary:hover {
+  background-color: var(--surface-container-high);
+  color: var(--on-surface);
+}
+
+/* Search Input */
+.stitch-search-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.stitch-search-input {
+  background-color: var(--surface-container-low);
+  border: 1px solid transparent;
+  color: var(--on-surface);
+  border-radius: 12px;
+  padding: 9px 14px 9px 40px;
+  font-size: 0.9rem;
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.stitch-search-input:focus {
+  background-color: var(--surface-container-lowest);
+  border-color: var(--primary-container);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
+}
+
+.stitch-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--outline);
+  pointer-events: none;
+}
+
+/* Badges */
+.badge-stitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--pill-radius);
+  font-family: var(--font-family-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-in-use {
+  background-color: rgba(15, 118, 110, 0.12);
+  color: var(--primary-container);
+}
+
+.badge-active {
+  background-color: rgba(0, 107, 95, 0.12);
+  color: var(--secondary);
+}
+
+.badge-maintenance {
+  background-color: var(--error-container);
+  color: var(--on-error-container);
+}
+
+.badge-charging {
+  background-color: var(--tertiary-container);
+  color: var(--on-tertiary-container);
+}
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+/* Signature Metrics Bars */
+.metric-progress-track {
+  height: 6px;
+  background-color: var(--surface-container);
+  border-radius: var(--pill-radius);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.metric-progress-fill {
+  height: 100%;
+  border-radius: var(--pill-radius);
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Map Floor Plan Container */
+.map-canvas-container {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #0b1a20;
+}
+
+.map-grid-layer {
+  position: absolute;
+  inset: 0;
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(20, 184, 166, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(20, 184, 166, 0.08) 1px, transparent 1px);
+}
+
+.radar-sweep {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  top: 50%;
+  left: 50%;
+  margin-left: -200px;
+  margin-top: -200px;
+  border-radius: 50%;
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  box-shadow: 0 0 40px rgba(56, 189, 248, 0.08) inset;
+  pointer-events: none;
+}
+
+/* Pulsing Map Pin */
+.pin-node {
+  position: absolute;
+  cursor: pointer;
+  z-index: 10;
+  transition: transform 0.2s ease;
+}
+
+.pin-node:hover {
+  transform: scale(1.15);
+  z-index: 20;
+}
+
+.pin-pulse {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pinPing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes pinPing {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.8; }
+  80%, 100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+
+.pin-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 2;
+}
+
+.pin-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1e293b;
+  color: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  pointer-events: none;
+  z-index: 30;
+}
+
+.pin-node:hover .pin-tooltip {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* QR Scanner Containment & Clean Viewport */
+#qr-reader-viewport {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 320px !important;
+  border: none !important;
+  background: #0f172a !important;
+  position: relative !important;
+  overflow: hidden !important;
+  border-radius: 16px !important;
+}
+
+#qr-reader-viewport video {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  border-radius: 16px !important;
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  transform: translateZ(0) !important;
+  -webkit-transform: translateZ(0) !important;
+}
+
+#qr-reader-viewport canvas {
+  display: none !important;
+}
+
+#qr-shaded-region {
+  display: none !important;
+}
+
+#qr-reader-viewport img[alt="Info icon"],
+#qr-reader-viewport__header_message,
+#qr-reader-viewport__status_span {
+  display: none !important;
+}
+
+#qr-reader-viewport__scan_region {
+  border: none !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Scanner laser animation */
+@keyframes scanLaser {
+  0% {
+    top: 6%;
+    opacity: 0.7;
+  }
+  50% {
+    top: 90%;
+    opacity: 1;
+  }
+  100% {
+    top: 6%;
+    opacity: 0.7;
+  }
+}
+
+.scanner-laser {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #38bdf8, #60a5fa, transparent);
+  box-shadow: 0 0 8px 1px #38bdf8;
+  border-radius: 1px;
+  animation: scanLaser 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+

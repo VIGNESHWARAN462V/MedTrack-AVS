@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedTrack – Physical QR Test Targets</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #0b1120;
+      color: #f1f5f9;
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .qr-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      text-align: center;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .qr-card:hover {
+      transform: translateY(-4px);
+      border-color: #38bdf8;
+    }
+    .qr-image-wrapper {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      display: inline-block;
+      margin-bottom: 1rem;
+    }
+    .qr-image-wrapper img {
+      width: 220px;
+      height: 220px;
+      display: block;
+      image-rendering: pixelated;
+    }
+    .mono-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid #1e293b;
+      display: inline-block;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <div class="container py-3">
+    <div class="text-center mb-5">
+      <div class="d-inline-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-primary px-3 py-2 fs-6">Phase 13 Real Camera Verification</span>
+      </div>
+      <h1 class="fw-extrabold display-6 text-white mb-2">Physical QR Verification Targets</h1>
+      <p class="text-secondary max-w-xl mx-auto">
+        Keep this page open on your computer screen. Use your physical smartphone camera at <a href="https://172.20.10.2:5173/scan-qr" class="text-info fw-bold" target="_blank">https://172.20.10.2:5173/scan-qr</a> to scan these codes.
+      </p>
+    </div>
+
+    <!-- Phone Access Quick Connect -->
+    <div class="row justify-content-center mb-5">
+      <div class="col-md-6 col-lg-5">
+        <div class="qr-card border-info">
+          <span class="badge bg-info text-dark mb-2 fw-bold">Step 1: Scan to Open App on Smartphone</span>
+          <h2 class="fs-5 fw-bold text-white mb-3">Open MedTrack on Mobile</h2>
+          <div class="qr-image-wrapper">
+            <img src="/qr-samples/app-url.png" alt="Open on Mobile">
+          </div>
+          <div>
+            <div class="mono-badge mb-2">https://172.20.10.2:5173/scan-qr</div>
+            <p class="text-secondary small mb-0">
+              Scan with your phone's default camera app to open MedTrack on your smartphone. (Accept the self-signed SSL prompt).
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Real Test Targets -->
+    <h2 class="fs-5 fw-bold text-white mb-4 text-center">Step 2: Point In-App Scanner at Targets Below</h2>
+    <div class="row g-4 justify-content-center">
+      <!-- Target 1: ECG-001 (Primary Objective) -->
+      <div class="col-md-6 col-lg-4">
+        <div class="qr-card border-success">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge bg-success-subtle text-success border border-success fw-bold">PRIMARY TEST PASS</span>
+            <span class="badge bg-secondary">Cardiology</span>
+          </div>
+          <h3 class="fs-5 fw-bold text-white mb-1">Portable ECG Machine</h3>
+          <p class="text-muted small mb-3">Asset Code: <strong>ECG-001</strong> | Serial: <strong>SN-ECG-1001</strong></p>
+          <div class="qr-image-wrapper">
+            <img src="/qr-samples/ecg-001.png" alt="ECG-001">
+          </div>
+          <div>
+            <div class="mono-badge">MEDTRACK:ASSET:ECG-001</div>
+            <p class="text-secondary small mt-2 mb-0">Expected Result: <strong>Asset Verified</strong> (Cardiology, Assigned, SN-ECG-1001)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target 2: UNKNOWN-999 (Negative Test) -->
+      <div class="col-md-6 col-lg-4">
+        <div class="qr-card border-danger">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge bg-danger-subtle text-danger border border-danger fw-bold">NEGATIVE TEST</span>
+            <span class="badge bg-secondary">Unregistered</span>
+          </div>
+          <h3 class="fs-5 fw-bold text-white mb-1">Unregistered Asset Code</h3>
+          <p class="text-muted small mb-3">Asset Code: <strong>UNKNOWN-999</strong></p>
+          <div class="qr-image-wrapper">
+            <img src="/qr-samples/unknown-999.png" alt="UNKNOWN-999">
+          </div>
+          <div>
+            <div class="mono-badge">MEDTRACK:ASSET:UNKNOWN-999</div>
+            <p class="text-secondary small mt-2 mb-0">Expected Result: <strong>QR Not Recognized</strong> (No asset created)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Target 3: PUMP-001 (Secondary Test) -->
+      <div class="col-md-6 col-lg-4">
+        <div class="qr-card">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="badge bg-primary-subtle text-primary border border-primary fw-bold">ADDITIONAL VERIFICATION</span>
+            <span class="badge bg-secondary">ICU</span>
+          </div>
+          <h3 class="fs-5 fw-bold text-white mb-1">Infusion Pump</h3>
+          <p class="text-muted small mb-3">Asset Code: <strong>PUMP-001</strong> | Serial: <strong>SN-PUMP-2001</strong></p>
+          <div class="qr-image-wrapper">
+            <img src="/qr-samples/pump-001.png" alt="PUMP-001">
+          </div>
+          <div>
+            <div class="mono-badge">MEDTRACK:ASSET:PUMP-001</div>
+            <p class="text-secondary small mt-2 mb-0">Expected Result: <strong>Asset Verified</strong> (ICU, Assigned, SN-PUMP-2001)</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instructions banner -->
+    <div class="mt-5 p-4 rounded-4 bg-dark border border-secondary">
+      <h3 class="fs-6 fw-bold text-info mb-2">Testing Checklist on Phone:</h3>
+      <ol class="small text-secondary mb-0 ps-3">
+        <li>Open <code>/login</code> on your phone (or scan top QR).</li>
+        <li>Login using a configured authorized account.</li>
+        <li>Tap <strong>Scan QR</strong> in navigation or go to <code>/scan-qr</code>.</li>
+        <li>Allow browser Camera Permission when prompted. Verify rear camera starts with animated reticle.</li>
+        <li>Point phone camera at <strong>ECG-001</strong> above. Verify camera stops automatically, database query succeeds, and <strong>Asset Verified</strong> card renders with <strong>Cardiology / ASSIGNED / SN-ECG-1001</strong>.</li>
+        <li>Tap <strong>SCAN ANOTHER</strong>. Verify camera cleanly restarts without duplicate instances.</li>
+        <li>Point camera at <strong>UNKNOWN-999</strong>. Verify <strong>QR Not Recognized</strong> card displays.</li>
+      </ol>
+    </div>
+  </div>
+</body>
+</html>
