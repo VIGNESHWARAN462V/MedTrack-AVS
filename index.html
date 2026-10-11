@@ -31,11 +31,9 @@
     <!-- Non-render-blocking Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" media="print" onload="this.media='all'">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap" media="print" onload="this.media='all'">
     <noscript>
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap">
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap">
     </noscript>
 
     <!-- Critical Above-the-Fold Styling for Instant Mobile Initial Rendering -->
@@ -152,54 +150,63 @@
     </style>
   </head>
   <body>
-    <div id="root">
-      <div class="min-vh-100 d-flex flex-column" style="background-color: var(--surface); color: var(--on-surface);">
-        <header class="app-header d-flex align-items-center justify-content-between px-3 px-lg-5">
-          <div class="d-flex align-items-center gap-2">
-            <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
-              <img src="/medtrack-logo.svg" alt="MedTrack Logo" width="34" height="34" class="rounded-2" />
-              <span class="fs-5 fw-bold" style="color: var(--primary); letter-spacing: -0.02em;">
-                MedTrack <span style="color: var(--secondary);">– AVS</span>
-              </span>
-            </a>
-          </div>
-          <nav class="d-none d-md-flex align-items-center gap-4">
-            <a href="/" class="text-decoration-none fw-bold" style="color: var(--primary);">Home</a>
-            <a href="/about" class="text-decoration-none text-muted fw-semibold">About Project</a>
-            <a href="/login" class="text-decoration-none text-muted fw-semibold">Login</a>
-            <a href="/register" class="text-decoration-none text-muted fw-semibold">Register</a>
-          </nav>
-          <div class="d-flex align-items-center gap-2">
-            <a href="/login" class="btn btn-sm btn-outline-primary d-none d-sm-inline-flex px-3 py-1 rounded-2 fw-semibold" style="color: var(--primary); border-color: var(--primary);">Sign In</a>
-            <a href="/dashboard" class="btn btn-sm btn-stitch-primary px-3 py-1 rounded-2">Enter Dashboard</a>
-          </div>
-        </header>
-        <main class="flex-grow-1" style="padding-top: 64px;">
-          <section class="py-5 px-3 px-md-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(15, 118, 110, 0.08) 0%, var(--surface) 60%, rgba(0, 107, 95, 0.08) 100%);">
-            <div class="container-xl py-4 py-lg-5">
-              <div class="row align-items-center g-5">
-                <div class="col-12 col-lg-6">
-                  <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background-color: rgba(15, 118, 110, 0.12); color: var(--primary); font-size: 0.8rem; font-weight: 600;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                    <span>Next-Gen Asset Tracking</span>
-                  </div>
-                  <h1 class="display-5 fw-bold mb-3 lh-sm" style="letter-spacing: -0.02em;">
-                    Know Where Every Medical Asset Is.
-                  </h1>
-                  <p class="lead text-muted mb-4" style="font-size: 1.1rem;">
-                    Track mobile medical equipment in real time using QR identification, GPS location telemetry, and a live hospital interactive map.
-                  </p>
-                  <div class="d-flex flex-wrap gap-3">
-                    <a href="/register" class="btn btn-stitch-primary px-4 py-2 fs-6">Get Started</a>
-                    <a href="/dashboard" class="btn btn-stitch-secondary px-4 py-2 fs-6">Explore Dashboard</a>
-                  </div>
+    <!-- Instant Pre-Rendered Hero Shell (Cleanly removed when React mounts) -->
+    <div id="initial-shell" class="min-vh-100 d-flex flex-column" style="background-color: var(--surface); color: var(--on-surface); position: absolute; top: 0; left: 0; width: 100%; z-index: 100;">
+      <header class="app-header d-flex align-items-center justify-content-between px-3 px-lg-5">
+        <div class="d-flex align-items-center gap-2">
+          <a href="/" class="d-flex align-items-center gap-2 text-decoration-none">
+            <img src="/medtrack-logo.svg" alt="MedTrack Logo" width="34" height="34" class="rounded-2" />
+            <span class="fs-5 fw-bold" style="color: var(--primary); letter-spacing: -0.02em;">
+              MedTrack <span style="color: var(--secondary);">– AVS</span>
+            </span>
+          </a>
+        </div>
+        <nav class="d-none d-md-flex align-items-center gap-4">
+          <a href="/" class="text-decoration-none fw-bold" style="color: var(--primary);">Home</a>
+          <a href="/about" class="text-decoration-none text-muted fw-semibold">About Project</a>
+          <a href="/login" class="text-decoration-none text-muted fw-semibold">Login</a>
+          <a href="/register" class="text-decoration-none text-muted fw-semibold">Register</a>
+        </nav>
+        <div class="d-flex align-items-center gap-2">
+          <a href="/login" class="btn btn-sm btn-outline-primary d-none d-sm-inline-flex px-3 py-1 rounded-2 fw-semibold" style="color: var(--primary); border-color: var(--primary);">Sign In</a>
+          <a href="/dashboard" class="btn btn-sm btn-stitch-primary px-3 py-1 rounded-2">Enter Dashboard</a>
+        </div>
+      </header>
+      <main class="flex-grow-1" style="padding-top: 64px;">
+        <section class="py-5 px-3 px-md-5 position-relative overflow-hidden" style="background: linear-gradient(135deg, rgba(15, 118, 110, 0.08) 0%, var(--surface) 60%, rgba(0, 107, 95, 0.08) 100%);">
+          <div class="container-xl py-4 py-lg-5">
+            <div class="row align-items-center g-5">
+              <div class="col-12 col-lg-6">
+                <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3" style="background-color: rgba(15, 118, 110, 0.12); color: var(--primary); font-size: 0.8rem; font-weight: 600;">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                  <span>Next-Gen Asset Tracking</span>
+                </div>
+                <h1 class="display-5 fw-bold mb-3 lh-sm" style="letter-spacing: -0.02em;">
+                  Know Where Every Medical Asset Is.
+                </h1>
+                <p class="lead text-muted mb-4" style="font-size: 1.1rem;">
+                  Track mobile medical equipment in real time using QR identification, GPS location telemetry, and a live hospital interactive map.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                  <a href="/register" class="btn btn-stitch-primary px-4 py-2 fs-6">Get Started</a>
+                  <a href="/dashboard" class="btn btn-stitch-secondary px-4 py-2 fs-6">Explore Dashboard</a>
                 </div>
               </div>
             </div>
-          </section>
-        </main>
-      </div>
+          </div>
+        </section>
+      </main>
     </div>
+    <script>
+      (function() {
+        var p = window.location.pathname;
+        if (p && p !== '/' && p !== '/index.html') {
+          var s = document.getElementById('initial-shell');
+          if (s) s.remove();
+        }
+      })();
+    </script>
+    <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

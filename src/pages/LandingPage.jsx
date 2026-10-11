@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 
@@ -25,6 +25,13 @@ const getLandingStructuredData = () => {
 };
 
 export default function LandingPage() {
+  useLayoutEffect(() => {
+    const shell = document.getElementById('initial-shell');
+    if (shell) {
+      shell.remove();
+    }
+  }, []);
+
   return (
     <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--surface)', color: 'var(--on-surface)' }}>
       <SEO

@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useLayoutEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
@@ -24,6 +24,13 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const AiAssistantPage = lazy(() => import('./pages/AiAssistantPage'));
 
 export default function App() {
+  useLayoutEffect(() => {
+    const shell = document.getElementById('initial-shell');
+    if (shell) {
+      shell.remove();
+    }
+  }, []);
+
   return (
     <BrowserRouter>
       <AuthProvider>

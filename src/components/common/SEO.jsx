@@ -16,7 +16,9 @@ export default function SEO({
 }) {
   useEffect(() => {
     // 1. Page Title
-    document.title = title;
+    if (document.title !== title) {
+      document.title = title;
+    }
 
     // Helper to get or create a <meta> element
     const setMetaTag = (attributeName, attributeValue, content) => {
@@ -24,9 +26,11 @@ export default function SEO({
       if (!meta) {
         meta = document.createElement('meta');
         meta.setAttribute(attributeName, attributeValue);
+        meta.setAttribute('content', content);
         document.head.appendChild(meta);
+      } else if (meta.getAttribute('content') !== content) {
+        meta.setAttribute('content', content);
       }
-      meta.setAttribute('content', content);
     };
 
     // 2. Meta Description
@@ -43,12 +47,15 @@ export default function SEO({
 
     let canonicalLink = document.querySelector('link[rel="canonical"]');
     if (canonicalPath) {
+      const targetHref = `${siteOrigin}${canonicalPath}`;
       if (!canonicalLink) {
         canonicalLink = document.createElement('link');
         canonicalLink.setAttribute('rel', 'canonical');
+        canonicalLink.setAttribute('href', targetHref);
         document.head.appendChild(canonicalLink);
+      } else if (canonicalLink.getAttribute('href') !== targetHref) {
+        canonicalLink.setAttribute('href', targetHref);
       }
-      canonicalLink.setAttribute('href', `${siteOrigin}${canonicalPath}`);
     } else if (canonicalLink && noindex) {
       // Remove canonical on private noindex pages
       canonicalLink.remove();
@@ -69,13 +76,16 @@ export default function SEO({
     // 6. Schema.org JSON-LD Structured Data
     let scriptTag = document.querySelector('script#schema-structured-data');
     if (structuredData && !noindex) {
+      const jsonStr = JSON.stringify(structuredData);
       if (!scriptTag) {
         scriptTag = document.createElement('script');
         scriptTag.id = 'schema-structured-data';
         scriptTag.type = 'application/ld+json';
+        scriptTag.textContent = jsonStr;
         document.head.appendChild(scriptTag);
+      } else if (scriptTag.textContent !== jsonStr) {
+        scriptTag.textContent = jsonStr;
       }
-      scriptTag.textContent = JSON.stringify(structuredData);
     } else if (scriptTag) {
       scriptTag.remove();
     }

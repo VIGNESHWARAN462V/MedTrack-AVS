@@ -6,23 +6,19 @@ const AuthContext = createContext(null);
 export const TOKEN_STORAGE_KEY = 'medtrack_access_token';
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_STORAGE_KEY) || null);
+  const [token, setToken] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null));
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => (typeof window !== 'undefined' ? !!localStorage.getItem(TOKEN_STORAGE_KEY) : false));
 
   // Initialize and validate session on initial mount
   useEffect(() => {
     let isMounted = true;
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    if (!storedToken) {
+      return;
+    }
 
     async function initializeAuth() {
-      const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
-      if (!storedToken) {
-        if (isMounted) {
-          setLoading(false);
-        }
-        return;
-      }
-
       try {
         const currentUser = await authService.getCurrentUser(storedToken);
         if (isMounted) {
@@ -30,7 +26,7 @@ export function AuthProvider({ children }) {
           setToken(storedToken);
         }
       } catch (err) {
-        console.warn('Session expired or invalid JWT token. Clearing credentials.');
+        console.warn('Session expired or invalid JWT token. Clearing credentials.', err?.message);
         localStorage.removeItem(TOKEN_STORAGE_KEY);
         if (isMounted) {
           setUser(null);

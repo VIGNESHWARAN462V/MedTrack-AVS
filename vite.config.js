@@ -1,10 +1,24 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
+function nonBlockingCssPlugin() {
+  return {
+    name: 'non-blocking-css',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      return html.replace(
+        /<link rel="stylesheet" crossorigin href="(\/assets\/index-[^"]+\.css)">/g,
+        '<link rel="stylesheet" crossorigin href="$1" media="print" onload="this.media=\'all\'">\n    <noscript><link rel="stylesheet" crossorigin href="$1"></noscript>'
+      );
+    },
+  };
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    nonBlockingCssPlugin(),
   ],
   server: {
     host: '0.0.0.0',
