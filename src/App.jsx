@@ -2,8 +2,8 @@ import React, { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
-import MainLayout from './layouts/MainLayout';
 import LoadingFallback from './components/common/LoadingFallback';
+const MainLayout = lazy(() => import('./layouts/MainLayout'));
 
 // Public pages (Lightweight initial bundle)
 import LandingPage from './pages/LandingPage';

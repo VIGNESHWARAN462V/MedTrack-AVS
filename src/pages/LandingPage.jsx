@@ -304,7 +304,7 @@ export default function LandingPage() {
                 <div key={item.step} className="col-12 col-md">
                   <div className="stitch-card p-4 h-100">
                     <span className="fs-2 fw-bold mb-2 d-block" style={{ color: 'var(--primary)' }}>{item.step}</span>
-                    <h4 className="fs-6 fw-bold mb-1">{item.title}</h4>
+                    <h3 className="fs-6 fw-bold mb-1">{item.title}</h3>
                     <p className="text-muted small mb-0">{item.desc}</p>
                   </div>
                 </div>
@@ -331,7 +331,7 @@ export default function LandingPage() {
                     <span className="small text-muted text-uppercase fw-semibold" style={{ fontSize: '0.72rem' }}>Continuity</span>
                     <span className="fw-bold fs-5" style={{ color: 'var(--primary)' }}>91%</span>
                   </div>
-                  <h4 className="fs-6 fw-bold mb-2">Asset Movement Continuity</h4>
+                  <h3 className="fs-6 fw-bold mb-2">Asset Movement Continuity</h3>
                   <div className="metric-progress-track">
                     <div className="metric-progress-fill" style={{ width: '91%', backgroundColor: 'var(--primary)' }} />
                   </div>
@@ -347,7 +347,7 @@ export default function LandingPage() {
                     <span className="small text-muted text-uppercase fw-semibold" style={{ fontSize: '0.72rem' }}>Friction Score</span>
                     <span className="fw-bold fs-5" style={{ color: 'var(--secondary)' }}>18</span>
                   </div>
-                  <h4 className="fs-6 fw-bold mb-2">Handoff Friction Index</h4>
+                  <h3 className="fs-6 fw-bold mb-2">Handoff Friction Index</h3>
                   <div className="metric-progress-track">
                     <div className="metric-progress-fill" style={{ width: '18%', backgroundColor: 'var(--secondary)' }} />
                   </div>
@@ -363,7 +363,7 @@ export default function LandingPage() {
                     <span className="small text-muted text-uppercase fw-semibold" style={{ fontSize: '0.72rem' }}>Allocation</span>
                     <span className="fw-bold fs-5" style={{ color: 'var(--tertiary)' }}>82%</span>
                   </div>
-                  <h4 className="fs-6 fw-bold mb-2">Geo-Utilization Balance</h4>
+                  <h3 className="fs-6 fw-bold mb-2">Geo-Utilization Balance</h3>
                   <div className="metric-progress-track">
                     <div className="metric-progress-fill" style={{ width: '82%', backgroundColor: 'var(--tertiary)' }} />
                   </div>
@@ -392,11 +392,15 @@ export default function LandingPage() {
               Join clinical departments that rely on MedTrack – AVS to eliminate equipment search delays and improve healthcare delivery.
             </p>
             <div className="d-flex justify-content-center gap-3">
-              <Link to="/dashboard" className="btn btn-stitch-primary px-4 py-2 fs-6 shadow-sm">
+              <Link to="/dashboard" className="btn btn-stitch-primary px-4 py-2 fs-6 shadow-sm" aria-label="Open operational hospital asset tracking console">
                 Open Operational Console
               </Link>
-              <Link to="/about" className="btn btn-stitch-secondary px-4 py-2 fs-6">
-                Learn More
+              <Link
+                to="/about"
+                className="btn btn-stitch-secondary px-4 py-2 fs-6"
+                aria-label="Learn more about MedTrack AVS clinical architecture and specifications"
+              >
+                Learn More About AVS
               </Link>
             </div>
           </div>

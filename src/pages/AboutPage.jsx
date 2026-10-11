@@ -24,7 +24,7 @@ export default function AboutPage() {
             <span>Healthcare-Tech SaaS Specification</span>
           </div>
           <h1 className="display-6 fw-bold mb-2 text-white">About MedTrack – AVS</h1>
-          <p className="lead text-white-50 mb-4" style={{ maxWidth: '680px', fontSize: '1.05rem' }}>
+          <p className="lead mb-4" style={{ maxWidth: '680px', fontSize: '1.05rem', color: '#e6f9f5' }}>
             Next-generation Hospital Asset Tracking System and Mobile Medical Equipment Geolocation Dashboard designed for clinical clarity, sub-meter positioning, and frictionless handoffs.
           </p>
           <div className="d-flex flex-wrap gap-2">
@@ -88,7 +88,7 @@ export default function AboutPage() {
             <div className="d-flex gap-3">
               <span className="material-symbols-outlined fs-2 text-primary">bluetooth</span>
               <div>
-                <h4 className="fs-6 fw-bold text-dark mb-1">BLE Mesh &amp; Beacon Nodes</h4>
+                <h3 className="fs-6 fw-bold text-dark mb-1">BLE Mesh &amp; Beacon Nodes</h3>
                 <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
                   Ultra-low-power BLE beacons with 3+ year battery life mounted on mobile assets, paired with ceiling receiver gateways every 12 meters.
                 </p>
@@ -100,7 +100,7 @@ export default function AboutPage() {
             <div className="d-flex gap-3">
               <span className="material-symbols-outlined fs-2 text-secondary">fence</span>
               <div>
-                <h4 className="fs-6 fw-bold text-dark mb-1">Dynamic Geofence Polygons</h4>
+                <h3 className="fs-6 fw-bold text-dark mb-1">Dynamic Geofence Polygons</h3>
                 <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
                   Configurable software geofences per floor, wing, or sterile surgical theatre with immediate breach alert dispatch.
                 </p>
@@ -112,7 +112,7 @@ export default function AboutPage() {
             <div className="d-flex gap-3">
               <span className="material-symbols-outlined fs-2 text-tertiary">qr_code</span>
               <div>
-                <h4 className="fs-6 fw-bold text-dark mb-1">Optical Barcode + RFID Hybrid</h4>
+                <h3 className="fs-6 fw-bold text-dark mb-1">Optical Barcode + RFID Hybrid</h3>
                 <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
                   Dual-layer identification allowing physical nursing staff scanning with any iOS/Android smartphone or automated gateway logging.
                 </p>
@@ -124,7 +124,7 @@ export default function AboutPage() {
             <div className="d-flex gap-3">
               <span className="material-symbols-outlined fs-2 text-success">security</span>
               <div>
-                <h4 className="fs-6 fw-bold text-dark mb-1">HIPAA &amp; HL7/FHIR Compliant</h4>
+                <h3 className="fs-6 fw-bold text-dark mb-1">HIPAA &amp; HL7/FHIR Compliant</h3>
                 <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
                   Secure cryptographic token authentication, audit log immutability, and seamless synchronization with hospital EMR systems.
                 </p>

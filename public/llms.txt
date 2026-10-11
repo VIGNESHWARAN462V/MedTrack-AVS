@@ -1,0 +1,15 @@
+# MedTrack – AVS
+
+> Real-time hospital asset tracking system and mobile medical equipment geolocation dashboard utilizing QR identification, physical GPS telemetry, and live geofencing.
+
+MedTrack – AVS provides clinical asset tracking across hospital environments. The system connects mobile medical equipment (e.g. ECG monitors, infusion pumps, defibrillators) with optical QR identification, BLE beacon mesh telemetry, and live interactive floor plans to ensure clinical handoffs are fast and transparent.
+
+## Documentation
+
+- [Home](https://medtrack-avs.vercel.app/): Public landing page with live interactive floor plan preview and overview of real-time medical asset tracking.
+- [About Project](https://medtrack-avs.vercel.app/about): Comprehensive architecture and engineering specifications covering BLE beacon mesh, sub-meter geolocation, QR scanning, and clinical friction metrics.
+
+## Optional
+
+- [Robots Directives](https://medtrack-avs.vercel.app/robots.txt): Search engine and crawler directive index.
+- [XML Sitemap](https://medtrack-avs.vercel.app/sitemap.xml): XML sitemap listing public canonical URLs.

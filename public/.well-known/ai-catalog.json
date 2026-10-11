@@ -1,0 +1,24 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "MedTrack – AVS",
+    "documentationUrl": "https://medtrack-avs.vercel.app/about",
+    "logoUrl": "https://medtrack-avs.vercel.app/medtrack-logo.svg"
+  },
+  "entries": [
+    {
+      "identifier": "urn:ai:medtrack-avs:service:documentation",
+      "displayName": "MedTrack AVS System Documentation",
+      "type": "text/markdown",
+      "url": "https://medtrack-avs.vercel.app/llms.txt",
+      "description": "Comprehensive public architecture and clinical tracking specifications for MedTrack – AVS."
+    },
+    {
+      "identifier": "urn:ai:medtrack-avs:service:architecture",
+      "displayName": "MedTrack AVS Engineering Architecture",
+      "type": "text/html",
+      "url": "https://medtrack-avs.vercel.app/about",
+      "description": "Technical specifications on BLE beacon gateways, sub-meter positioning, and signature clinical metrics."
+    }
+  ]
+}

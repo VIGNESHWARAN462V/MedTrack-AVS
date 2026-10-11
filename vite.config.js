@@ -38,23 +38,21 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
-            if (id.includes('leaflet') || id.includes('react-leaflet')) {
+            const cleanId = id.replace(/\\/g, '/');
+            if (
+              cleanId.includes('/react/') ||
+              cleanId.includes('/react-dom/') ||
+              cleanId.includes('/react-router/') ||
+              cleanId.includes('/react-router-dom/') ||
+              cleanId.includes('/scheduler/')
+            ) {
+              return 'vendor-core';
+            }
+            if (cleanId.includes('leaflet') || cleanId.includes('react-leaflet')) {
               return 'vendor-maps';
             }
-            if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('html5-qrcode')) {
+            if (cleanId.includes('html5-qrcode') || cleanId.includes('/qrcode/')) {
               return 'vendor-scanner';
-            }
-            if (id.includes('@stomp/stompjs')) {
-              return 'vendor-stomp';
-            }
-            if (id.includes('bootstrap')) {
-              return 'vendor-bootstrap';
-            }
-            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
-              return 'vendor-core';
             }
           }
         },

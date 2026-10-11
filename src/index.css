@@ -27,8 +27,8 @@
   --surface-variant: #e0e3e5;
 
   --on-surface: #191c1e;
-  --on-surface-variant: #3e4947;
-  --outline: #6e7977;
+  --on-surface-variant: #334155;
+  --outline: #52605e;
   --outline-variant: #cbd5e1;
 
   --error: #ba1a1a;
@@ -65,6 +65,21 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--on-surface);
   font-weight: 600;
   letter-spacing: -0.015em;
+}
+
+/* WCAG AA High-Contrast text-muted override */
+.text-muted {
+  color: #475569 !important;
+}
+
+/* Accessible focus indicators */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--primary) !important;
+  outline-offset: 2px !important;
 }
 
 /* Material Symbols sizing & baseline */
@@ -359,12 +374,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .badge-in-use {
   background-color: rgba(15, 118, 110, 0.12);
-  color: var(--primary-container);
+  color: var(--primary);
 }
 
 .badge-active {
   background-color: rgba(0, 107, 95, 0.12);
-  color: var(--secondary);
+  color: #00564d;
 }
 
 .badge-maintenance {
