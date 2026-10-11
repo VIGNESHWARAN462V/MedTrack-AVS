@@ -409,7 +409,7 @@ sequenceDiagram
 | :--- | :---: | :--- |
 | `VITE_API_BASE_URL` | **YES** | `https://your-railway-domain.up.railway.app` (NO trailing slash) |
 
-5. Click **Deploy**. Vercel will build the frontend and deploy it to a URL like `https://medtrack-avs.vercel.app`.
+5. Click **Deploy**. Vercel will build the frontend and deploy it to a URL like `https://med-track-avs.vercel.app`.
 6. React Router deep-links (`/login`, `/dashboard`, `/scan-qr`, `/ai-assistant`) are automatically resolved via `vercel.json`.
 
 ### Step 4: Finalize Cross-Origin & OAuth2 Settings
@@ -418,11 +418,11 @@ Once both URLs are known:
 1. **In Railway Backend Variables**:
    - Update `CORS_ALLOWED_ORIGINS` to your exact Vercel URL:
      ```
-     CORS_ALLOWED_ORIGINS=https://medtrack-avs.vercel.app
+     CORS_ALLOWED_ORIGINS=https://med-track-avs.vercel.app
      ```
    - Update `OAUTH2_REDIRECT_URI` to:
      ```
-     OAUTH2_REDIRECT_URI=https://medtrack-avs.vercel.app/auth/callback
+     OAUTH2_REDIRECT_URI=https://med-track-avs.vercel.app/auth/callback
      ```
    - Railway will automatically redeploy the backend with the new configuration.
 
@@ -432,7 +432,7 @@ When Google Sign-In is enabled:
 1. Navigate to the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 2. Edit your **OAuth 2.0 Client ID** (Web application).
 3. **Authorized JavaScript origins**:
-   - Add your Vercel frontend URL: `https://medtrack-avs.vercel.app`
+   - Add your Vercel frontend URL: `https://med-track-avs.vercel.app`
 4. **Authorized redirect URIs**:
    - Add your Railway backend callback: `https://your-railway-domain.up.railway.app/login/oauth2/code/google`
 5. Save changes. Google OAuth authentication will now work seamlessly in production.

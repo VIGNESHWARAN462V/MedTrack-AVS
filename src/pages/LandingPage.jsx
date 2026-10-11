@@ -5,7 +5,7 @@ import SEO from '../components/common/SEO';
 const getLandingStructuredData = () => {
   const origin =
     (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SITE_URL) ||
-    (typeof window !== 'undefined' ? window.location.origin : 'https://medtrack-avs.vercel.app');
+    (typeof window !== 'undefined' ? window.location.origin : 'https://med-track-avs.vercel.app');
 
   return {
     '@context': 'https://schema.org',

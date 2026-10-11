@@ -20,4 +20,4 @@ Disallow: /login
 Disallow: /register
 Disallow: /api/
 
-Sitemap: https://medtrack-avs.vercel.app/sitemap.xml
+Sitemap: https://med-track-avs.vercel.app/sitemap.xml

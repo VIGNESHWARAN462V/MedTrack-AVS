@@ -6,10 +6,10 @@ MedTrack – AVS provides clinical asset tracking across hospital environments. 
 
 ## Documentation
 
-- [Home](https://medtrack-avs.vercel.app/): Public landing page with live interactive floor plan preview and overview of real-time medical asset tracking.
-- [About Project](https://medtrack-avs.vercel.app/about): Comprehensive architecture and engineering specifications covering BLE beacon mesh, sub-meter geolocation, QR scanning, and clinical friction metrics.
+- [Home](https://med-track-avs.vercel.app/): Public landing page with live interactive floor plan preview and overview of real-time medical asset tracking.
+- [About Project](https://med-track-avs.vercel.app/about): Comprehensive architecture and engineering specifications covering BLE beacon mesh, sub-meter geolocation, QR scanning, and clinical friction metrics.
 
 ## Optional
 
-- [Robots Directives](https://medtrack-avs.vercel.app/robots.txt): Search engine and crawler directive index.
-- [XML Sitemap](https://medtrack-avs.vercel.app/sitemap.xml): XML sitemap listing public canonical URLs.
+- [Robots Directives](https://med-track-avs.vercel.app/robots.txt): Search engine and crawler directive index.
+- [XML Sitemap](https://med-track-avs.vercel.app/sitemap.xml): XML sitemap listing public canonical URLs.
