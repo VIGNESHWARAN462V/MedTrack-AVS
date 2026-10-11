@@ -8,7 +8,7 @@ function nonBlockingCssPlugin() {
     transformIndexHtml(html) {
       return html.replace(
         /<link rel="stylesheet" crossorigin href="(\/assets\/index-[^"]+\.css)">/g,
-        '<link rel="stylesheet" crossorigin href="$1" media="print" onload="this.media=\'all\'">\n    <noscript><link rel="stylesheet" crossorigin href="$1"></noscript>'
+        '<link rel="stylesheet" crossorigin href="$1" media="print" data-app-css="true">\n    <noscript><link rel="stylesheet" crossorigin href="$1"></noscript>'
       );
     },
   };

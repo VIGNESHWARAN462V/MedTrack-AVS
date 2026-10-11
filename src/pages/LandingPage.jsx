@@ -141,7 +141,7 @@ export default function LandingPage() {
                     <div className="pin-node" style={{ top: '35%', left: '30%' }}>
                       <span className="pin-pulse" style={{ backgroundColor: 'var(--primary)' }} />
                       <div className="pin-badge" style={{ backgroundColor: 'var(--primary)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>ecg_heart</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                       </div>
                       <div className="pin-tooltip" style={{ opacity: 1, visibility: 'visible' }}>
                         ECG-023 • Emergency Bay 2
@@ -151,7 +151,7 @@ export default function LandingPage() {
                     {/* Telemetry Node 2 */}
                     <div className="pin-node" style={{ top: '65%', left: '72%' }}>
                       <div className="pin-badge" style={{ backgroundColor: 'var(--secondary)' }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '15px' }}>vaccines</span>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M19.78 6.46l-2.24-2.24c-.39-.39-1.02-.39-1.41 0l-1.42 1.41 3.65 3.65 1.42-1.41c.39-.39.39-1.02 0-1.41zM3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z"/></svg>
                       </div>
                       <div className="pin-tooltip" style={{ opacity: 1, visibility: 'visible' }}>
                         PUMP-014 • ICU Corridor
@@ -164,7 +164,7 @@ export default function LandingPage() {
                     <div className="col-6">
                       <div className="p-3 rounded-3" style={{ backgroundColor: 'var(--surface-container-low)' }}>
                         <div className="d-flex align-items-center gap-2 mb-1">
-                          <span className="material-symbols-outlined fs-5" style={{ color: 'var(--primary)' }}>bolt</span>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--primary)' }} aria-hidden="true"><path d="M11 21h-1l1-7H7.5c-.88 0-.33-.75-.31-.78C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15L11 21z"/></svg>
                           <span className="small text-muted">ECG-023 Status</span>
                         </div>
                         <div className="fw-bold small">Moving • 4s ago</div>
@@ -173,7 +173,7 @@ export default function LandingPage() {
                     <div className="col-6">
                       <div className="p-3 rounded-3" style={{ backgroundColor: 'var(--surface-container-low)' }}>
                         <div className="d-flex align-items-center gap-2 mb-1">
-                          <span className="material-symbols-outlined fs-5" style={{ color: 'var(--secondary)' }}>inventory_2</span>
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style={{ color: 'var(--secondary)' }} aria-hidden="true"><path d="M20 2H4c-1 0-2 .9-2 2v3.01c0 .72.43 1.34 1 1.69V20c0 1.1 1.1 2 2 2h14c.9 0 2-.9 2-2V8.7c.57-.35 1-.97 1-1.69V4c0-1.1-1-2-2-2zm-5 12H9v-2h6v2zm5-7H4V4h16v3z"/></svg>
                           <span className="small text-muted">Total Fleet</span>
                         </div>
                         <div className="fw-bold small">42 Assets Online</div>
@@ -186,8 +186,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Trust & Fleet Quick Stats */}
-        <section className="py-5 px-3 px-md-5" style={{ backgroundColor: 'var(--surface-container-low)' }}>
+        {/* Trust & Fleet Quick Stats (Containment for instant mobile rendering) */}
+        <section
+          className="py-5 px-3 px-md-5"
+          style={{
+            backgroundColor: 'var(--surface-container-low)',
+            contentVisibility: 'auto',
+            containIntrinsicSize: '0 240px',
+          }}
+        >
           <div className="container-xl">
             <div className="row g-3 g-md-4">
               <div className="col-6 col-lg-3">
@@ -239,7 +246,13 @@ export default function LandingPage() {
         </section>
 
         {/* Core Advantages */}
-        <section className="py-5 px-3 px-md-5">
+        <section
+          className="py-5 px-3 px-md-5"
+          style={{
+            contentVisibility: 'auto',
+            containIntrinsicSize: '0 450px',
+          }}
+        >
           <div className="container-xl py-4">
             <div className="text-center max-w-2xl mx-auto mb-5">
               <span className="small text-uppercase fw-semibold" style={{ color: 'var(--primary)', letterSpacing: '0.08em' }}>
@@ -255,7 +268,7 @@ export default function LandingPage() {
               <div className="col-12 col-md-4">
                 <div className="stitch-card p-4 h-100">
                   <div className="rounded-3 p-3 d-inline-flex align-items-center justify-content-center mb-3" style={{ backgroundColor: 'rgba(0, 92, 85, 0.1)', color: 'var(--primary)' }}>
-                    <span className="material-symbols-outlined fs-3">radar</span>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm0-14c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm0 10c-2.21 0-4-1.79-4-4s1.79-4 4-4 4 1.79 4 4-1.79 4-4 4zm0-6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
                   </div>
                   <h3 className="fs-5 fw-bold mb-2">Real-Time Tracking</h3>
                   <p className="text-muted small mb-0">
@@ -267,7 +280,7 @@ export default function LandingPage() {
               <div className="col-12 col-md-4">
                 <div className="stitch-card p-4 h-100">
                   <div className="rounded-3 p-3 d-inline-flex align-items-center justify-content-center mb-3" style={{ backgroundColor: 'rgba(0, 107, 95, 0.1)', color: 'var(--secondary)' }}>
-                    <span className="material-symbols-outlined fs-3">qr_code_scanner</span>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm13-2h3v2h-3zm-3 2h3v3h-3zm3 3h3v3h-3zm-3 2h3v2h-3zm5-5h2v5h-2z"/></svg>
                   </div>
                   <h3 className="fs-5 fw-bold mb-2">QR Asset Identification</h3>
                   <p className="text-muted small mb-0">
@@ -279,7 +292,7 @@ export default function LandingPage() {
               <div className="col-12 col-md-4">
                 <div className="stitch-card p-4 h-100">
                   <div className="rounded-3 p-3 d-inline-flex align-items-center justify-content-center mb-3" style={{ backgroundColor: 'var(--tertiary-container)', color: 'var(--tertiary)' }}>
-                    <span className="material-symbols-outlined fs-3">notifications_active</span>
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/></svg>
                   </div>
                   <h3 className="fs-5 fw-bold mb-2">Smart Alerts</h3>
                   <p className="text-muted small mb-0">
@@ -292,7 +305,14 @@ export default function LandingPage() {
         </section>
 
         {/* 5-Step Workflow */}
-        <section className="py-5 px-3 px-md-5" style={{ backgroundColor: 'var(--surface-container-low)' }}>
+        <section
+          className="py-5 px-3 px-md-5"
+          style={{
+            backgroundColor: 'var(--surface-container-low)',
+            contentVisibility: 'auto',
+            containIntrinsicSize: '0 320px',
+          }}
+        >
           <div className="container-xl py-4">
             <div className="text-center mb-5">
               <span className="small text-uppercase fw-semibold" style={{ color: 'var(--primary)', letterSpacing: '0.08em' }}>
@@ -323,7 +343,13 @@ export default function LandingPage() {
         </section>
 
         {/* 3 Signature Metrics Preview */}
-        <section className="py-5 px-3 px-md-5">
+        <section
+          className="py-5 px-3 px-md-5"
+          style={{
+            contentVisibility: 'auto',
+            containIntrinsicSize: '0 450px',
+          }}
+        >
           <div className="container-xl py-4">
             <div className="text-center mb-5">
               <span className="small text-uppercase fw-semibold" style={{ color: 'var(--primary)', letterSpacing: '0.08em' }}>
@@ -390,6 +416,8 @@ export default function LandingPage() {
           className="py-5 px-3 px-md-5 text-center"
           style={{
             background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.12) 0%, rgba(0, 107, 95, 0.12) 100%)',
+            contentVisibility: 'auto',
+            containIntrinsicSize: '0 300px',
           }}
         >
           <div className="container-xl py-4" style={{ maxWidth: '720px' }}>
@@ -417,7 +445,16 @@ export default function LandingPage() {
       </main>
 
       {/* Footer */}
-      <footer className="py-4 text-center border-top" style={{ backgroundColor: 'var(--surface-container-low)', fontSize: '0.85rem', color: 'var(--outline)' }}>
+      <footer
+        className="py-4 text-center border-top"
+        style={{
+          backgroundColor: 'var(--surface-container-low)',
+          fontSize: '0.85rem',
+          color: 'var(--outline)',
+          contentVisibility: 'auto',
+          containIntrinsicSize: '0 80px',
+        }}
+      >
         <div className="container-xl">
           © 2026 MedTrack – AVS. Hospital Asset Tracking & Geolocation Console.
         </div>

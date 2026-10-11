@@ -29,6 +29,17 @@ export default function MainLayout() {
     return () => { isMounted = false; };
   }, []);
 
+  // Dynamically load Material Symbols font for application console routes
+  useEffect(() => {
+    if (typeof document !== 'undefined' && !document.querySelector('link[data-material-symbols]')) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0..1,0&display=swap';
+      link.setAttribute('data-material-symbols', 'true');
+      document.head.appendChild(link);
+    }
+  }, []);
+
   const handleSelectAsset = (asset) => {
     setActiveAssetModal(asset);
   };

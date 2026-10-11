@@ -72,14 +72,14 @@ export default function Register() {
 
         {error && (
           <div className="alert alert-danger d-flex align-items-center gap-2 p-3 rounded-3 small mb-3 border-0" role="alert" style={{ backgroundColor: 'var(--error-container)', color: 'var(--on-error-container)' }}>
-            <span className="material-symbols-outlined fs-5">error</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
             <span>{error}</span>
           </div>
         )}
 
         {success && (
           <div className="alert alert-success d-flex align-items-center gap-2 p-3 rounded-3 small mb-3 border-0" role="alert" style={{ backgroundColor: 'var(--success-container)', color: 'var(--on-success-container)' }}>
-            <span className="material-symbols-outlined fs-5">check_circle</span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
             <span>{success}</span>
           </div>
         )}
