@@ -61,9 +61,9 @@ export default function Sidebar({ showMobile, closeMobileSidebar, activeAlertCou
       <aside
         id="app-sidebar-drawer"
         aria-label="Application navigation"
-        className={`app-sidebar p-3 d-flex flex-column justify-content-between ${showMobile ? 'show-mobile' : ''}`}
+        className={`app-sidebar p-3 d-flex flex-column ${showMobile ? 'show-mobile' : ''}`}
       >
-        <div className="d-flex flex-column">
+        <div className="d-flex flex-column flex-grow-1">
           {/* Drawer Header: Title and Mobile Close Button */}
           <div className="d-flex align-items-center justify-content-between px-2 pb-2 mb-2 border-bottom">
             <div className="d-flex align-items-center gap-2">
@@ -133,7 +133,7 @@ export default function Sidebar({ showMobile, closeMobileSidebar, activeAlertCou
 
         {/* Bottom Infrastructure Status Badge */}
         <div
-          className="p-3 rounded-3 mt-4 flex-shrink-0"
+          className="p-3 rounded-3 mt-3 mt-lg-auto flex-shrink-0"
           style={{
             backgroundColor: 'var(--surface-container-low)',
             border: '1px solid var(--surface-variant)'
