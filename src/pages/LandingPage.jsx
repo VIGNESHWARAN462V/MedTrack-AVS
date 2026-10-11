@@ -66,7 +66,7 @@ export default function LandingPage() {
         </nav>
 
         <div className="d-flex align-items-center gap-2">
-          <Link to="/login" className="btn btn-sm btn-outline-secondary d-none d-sm-inline-flex px-3 py-1 rounded-2">
+          <Link to="/login" className="btn btn-sm btn-outline-primary d-none d-sm-inline-flex px-3 py-1 rounded-2 fw-semibold" style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}>
             Sign In
           </Link>
           <Link to="/dashboard" className="btn btn-sm btn-stitch-primary px-3 py-1 rounded-2">

@@ -7,14 +7,14 @@
   },
   "entries": [
     {
-      "identifier": "urn:ai:medtrack-avs:service:documentation",
+      "identifier": "urn:air:medtrack-avs:service:documentation",
       "displayName": "MedTrack AVS System Documentation",
       "type": "text/markdown",
       "url": "https://med-track-avs.vercel.app/llms.txt",
       "description": "Comprehensive public architecture and clinical tracking specifications for MedTrack – AVS."
     },
     {
-      "identifier": "urn:ai:medtrack-avs:service:architecture",
+      "identifier": "urn:air:medtrack-avs:service:architecture",
       "displayName": "MedTrack AVS Engineering Architecture",
       "type": "text/html",
       "url": "https://med-track-avs.vercel.app/about",
