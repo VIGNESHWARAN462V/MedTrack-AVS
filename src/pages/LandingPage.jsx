@@ -91,7 +91,9 @@ export default function LandingPage() {
                   className="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-3 shadow-xs"
                   style={{ backgroundColor: 'rgba(15, 118, 110, 0.12)', color: 'var(--primary)', fontSize: '0.8rem', fontWeight: 600 }}
                 >
-                  <span className="material-symbols-outlined fs-6">verified</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                  </svg>
                   <span>Next-Gen Asset Tracking</span>
                 </div>
                 <h1 className="display-5 fw-bold mb-3 lh-sm" style={{ letterSpacing: '-0.02em' }}>
