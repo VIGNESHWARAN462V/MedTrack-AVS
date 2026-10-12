@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { getGpsTelemetryStatus } from '../../utils/gpsTelemetry';
 
 /**
  * Helper component to pan/fit the map when selected target or hospital changes.
@@ -144,12 +145,19 @@ export default function LiveTrackingMap({
 }) {
   const [showLegend, setShowLegend] = useState(true);
 
+  // Periodic 30-second tick to ensure map marker popups and filters transition over time
+  const [freshnessTick, setFreshnessTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFreshnessTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
   // Filter assets that have valid GPS coordinates (outdoor map requires valid lat/lon)
   const mappedAssets = useMemo(() => {
-    return assets.filter(
-      (a) => a.latitude != null && a.longitude != null && !isNaN(a.latitude) && !isNaN(a.longitude)
-    );
-  }, [assets]);
+    return assets.filter((a) => getGpsTelemetryStatus(a).hasFix);
+  }, [assets, freshnessTick]);
 
   // Filter buildings with valid GPS coordinates
   const mappedBuildings = useMemo(() => {
@@ -412,33 +420,39 @@ export default function LiveTrackingMap({
                 }}
               >
                 <Popup>
-                  <div className="p-1" style={{ minWidth: '180px' }}>
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <strong className="text-primary">{asset.assetCode}</strong>
-                      <span className="badge bg-secondary text-white" style={{ fontSize: '0.65rem' }}>
-                        {asset.status}
-                      </span>
-                    </div>
-                    <div className="fw-semibold text-dark mb-1" style={{ fontSize: '0.85rem' }}>
-                      {asset.assetName}
-                    </div>
-                    <div className="text-muted small mb-1">
-                      <strong>Dept:</strong> {asset.department?.name || asset.department?.code || 'Hospital'}
-                    </div>
-                    <div className="text-muted small mb-1">
-                      <strong>GPS:</strong> {asset.latitude?.toFixed(6)}, {asset.longitude?.toFixed(6)}
-                    </div>
-                    {asset.gpsAccuracy != null && (
-                      <div className="text-muted small mb-1">
-                        <strong>Accuracy:</strong> ±{Math.round(asset.gpsAccuracy)}m
+                  {(() => {
+                    const gpsStatus = getGpsTelemetryStatus(asset);
+                    return (
+                      <div className="p-1" style={{ minWidth: '190px' }}>
+                        <div className="d-flex align-items-center justify-content-between mb-1 gap-2">
+                          <strong className="text-primary">{asset.assetCode}</strong>
+                          <span className={`badge rounded-pill ${gpsStatus.badgeClass}`} style={{ fontSize: '0.65rem' }}>
+                            {gpsStatus.label}
+                          </span>
+                        </div>
+                        <div className="fw-semibold text-dark mb-1" style={{ fontSize: '0.85rem' }}>
+                          {asset.assetName}
+                        </div>
+                        <div className="text-muted small mb-1">
+                          <strong>Dept:</strong> {asset.department?.name || asset.department?.code || 'Hospital'}
+                        </div>
+                        <div className="text-muted small mb-1">
+                          <strong>Status:</strong> {asset.status}
+                        </div>
+                        <div className="text-muted small mb-1">
+                          <strong>GPS:</strong> {asset.latitude?.toFixed(6)}, {asset.longitude?.toFixed(6)}
+                        </div>
+                        {asset.gpsAccuracy != null && (
+                          <div className="text-muted small mb-1">
+                            <strong>Accuracy:</strong> ±{Math.round(asset.gpsAccuracy)}m
+                          </div>
+                        )}
+                        <div className="text-muted" style={{ fontSize: '0.7rem' }}>
+                          <strong>Last Update:</strong> {gpsStatus.lastUpdateText}
+                        </div>
                       </div>
-                    )}
-                    {asset.lastSeen && (
-                      <div className="text-muted" style={{ fontSize: '0.7rem' }}>
-                        <strong>Last Seen:</strong> {new Date(asset.lastSeen).toLocaleTimeString()}
-                      </div>
-                    )}
-                  </div>
+                    );
+                  })()}
                 </Popup>
               </Marker>
 

@@ -18,8 +18,11 @@ class TrackingSocketService {
     this.client = null;
     this.status = SocketStatus.DISCONNECTED;
     this.statusListeners = new Set();
+    this.telemetryListeners = new Set();
     this.activeSubscriptions = new Map(); // topic -> { callback, stompSub }
     this.reconnectAttempts = 0;
+    this.telemetryEventsCount = 0;
+    this.lastTelemetryReceivedAt = null;
   }
 
   /**
@@ -54,6 +57,35 @@ class TrackingSocketService {
     listener(this.status);
     return () => {
       this.statusListeners.delete(listener);
+    };
+  }
+
+  /**
+   * Subscribe to real telemetry reception events (distinct from socket transport connection).
+   */
+  onTelemetryUpdate(listener) {
+    this.telemetryListeners.add(listener);
+    listener(this.getTelemetryStats());
+    return () => {
+      this.telemetryListeners.delete(listener);
+    };
+  }
+
+  notifyTelemetryListeners() {
+    const stats = this.getTelemetryStats();
+    this.telemetryListeners.forEach((listener) => {
+      try {
+        listener(stats);
+      } catch (e) {
+        console.error('[WebSocket] Telemetry listener error:', e);
+      }
+    });
+  }
+
+  getTelemetryStats() {
+    return {
+      count: this.telemetryEventsCount,
+      lastReceivedAt: this.lastTelemetryReceivedAt,
     };
   }
 
@@ -142,6 +174,11 @@ class TrackingSocketService {
         entry.stompSub = this.client.subscribe(topic, (message) => {
           try {
             const payload = JSON.parse(message.body);
+            if (topic.startsWith('/topic/tracking/assets')) {
+              this.telemetryEventsCount += 1;
+              this.lastTelemetryReceivedAt = payload.recordedAt || new Date().toISOString();
+              this.notifyTelemetryListeners();
+            }
             entry.callbacks.forEach((cb) => {
               try {
                 cb(payload);
@@ -239,6 +276,11 @@ class TrackingSocketService {
       entry.stompSub = this.client.subscribe(topic, (message) => {
         try {
           const payload = JSON.parse(message.body);
+          if (topic.startsWith('/topic/tracking/assets')) {
+            this.telemetryEventsCount += 1;
+            this.lastTelemetryReceivedAt = payload.recordedAt || new Date().toISOString();
+            this.notifyTelemetryListeners();
+          }
           entry.callbacks.forEach((cb) => {
             try {
               cb(payload);
@@ -286,6 +328,9 @@ class TrackingSocketService {
       this.client = null;
     }
     this.activeSubscriptions.clear();
+    this.telemetryEventsCount = 0;
+    this.lastTelemetryReceivedAt = null;
+    this.notifyTelemetryListeners();
     this.setStatus(SocketStatus.DISCONNECTED);
   }
 

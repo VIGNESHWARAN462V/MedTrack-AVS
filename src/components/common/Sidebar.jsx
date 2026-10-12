@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
+import trackingSocketService, { SocketStatus } from '../../services/trackingSocketService';
 
 const baseNavItems = [
   { path: '/dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -15,6 +16,22 @@ const baseNavItems = [
 ];
 
 export default function Sidebar({ showMobile, closeMobileSidebar, activeAlertCount = 0 }) {
+  const [socketStatus, setSocketStatus] = useState(() => trackingSocketService.getStatus());
+  const [telemetryStats, setTelemetryStats] = useState(() => trackingSocketService.getTelemetryStats());
+
+  useEffect(() => {
+    const unsubStatus = trackingSocketService.onStatusChange((status) => {
+      setSocketStatus(status);
+    });
+    const unsubTelemetry = trackingSocketService.onTelemetryUpdate((stats) => {
+      setTelemetryStats(stats);
+    });
+    return () => {
+      unsubStatus();
+      unsubTelemetry();
+    };
+  }, []);
+
   // Body scroll lock and Escape key listener when mobile drawer is open
   useEffect(() => {
     if (!showMobile) return;
@@ -141,16 +158,47 @@ export default function Sidebar({ showMobile, closeMobileSidebar, activeAlertCou
         >
           <div className="d-flex align-items-center gap-2 mb-1">
             <span
-              className="spinner-grow spinner-grow-sm text-success"
+              className={`rounded-circle flex-shrink-0 ${
+                socketStatus === SocketStatus.CONNECTED
+                  ? 'bg-success'
+                  : socketStatus === SocketStatus.CONNECTING || socketStatus === SocketStatus.RECONNECTING
+                  ? 'bg-warning'
+                  : 'bg-secondary'
+              }`}
+              style={{
+                width: '8px',
+                height: '8px',
+                animation: socketStatus === SocketStatus.CONNECTED ? 'pulseDot 2s infinite' : 'none'
+              }}
               role="status"
-              style={{ width: '8px', height: '8px' }}
+              aria-label={`Socket Status: ${socketStatus}`}
             />
-            <span className="fw-semibold text-dark" style={{ fontSize: '0.785rem' }}>
-              Telemetry Stream Active
+            <span className="fw-semibold text-dark text-truncate" style={{ fontSize: '0.785rem' }}>
+              {socketStatus === SocketStatus.CONNECTED
+                ? telemetryStats.count > 0
+                  ? 'Telemetry Stream Active'
+                  : 'Telemetry Stream Ready'
+                : socketStatus === SocketStatus.RECONNECTING
+                ? 'Reconnecting to Telemetry...'
+                : socketStatus === SocketStatus.CONNECTING
+                ? 'Connecting to Telemetry...'
+                : socketStatus === SocketStatus.ERROR
+                ? 'Telemetry Stream Error'
+                : 'Telemetry Stream Offline'}
             </span>
           </div>
           <div style={{ fontSize: '0.72rem', color: 'var(--outline)' }}>
-            STOMP over WebSocket • Microsecond GPS sync verified.
+            {socketStatus === SocketStatus.CONNECTED
+              ? telemetryStats.count > 0
+                ? `STOMP over WebSocket • ${telemetryStats.count} GPS update${telemetryStats.count === 1 ? '' : 's'} received`
+                : 'STOMP over WebSocket • Awaiting GPS telemetry'
+              : socketStatus === SocketStatus.RECONNECTING
+              ? 'STOMP over WebSocket • Reconnecting to broker'
+              : socketStatus === SocketStatus.CONNECTING
+              ? 'STOMP over WebSocket • Negotiating connection'
+              : socketStatus === SocketStatus.ERROR
+              ? 'STOMP over WebSocket • Connection error'
+              : 'STOMP over WebSocket • Disconnected'}
           </div>
         </div>
       </aside>

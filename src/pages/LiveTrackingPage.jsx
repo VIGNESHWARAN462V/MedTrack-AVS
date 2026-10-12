@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { assetService } from '../services/assetService';
@@ -8,7 +8,8 @@ import hospitalService from '../services/hospitalService';
 import facilityService from '../services/facilityService';
 import trackingSocketService, { SocketStatus } from '../services/trackingSocketService';
 import LiveTrackingMap from '../components/tracking/LiveTrackingMap';
-import IndoorFloorMap, { getAssetStatusTheme } from '../components/tracking/IndoorFloorMap';
+import IndoorFloorMap from '../components/tracking/IndoorFloorMap';
+import { getGpsTelemetryStatus } from '../utils/gpsTelemetry';
 
 /**
  * Haversine Earth-distance calculation in meters.
@@ -173,6 +174,20 @@ export default function LiveTrackingPage() {
   // Indoor Floor Map & Room Tracking Mode
   const [trackingMode, setTrackingMode] = useState('OUTDOOR'); // 'OUTDOOR' | 'INDOOR'
   const [selectedFloor, setSelectedFloor] = useState(null);
+  const selectedFloorRef = useRef(selectedFloor);
+  useEffect(() => {
+    selectedFloorRef.current = selectedFloor;
+  }, [selectedFloor]);
+
+  // Periodic 30-second tick to ensure GPS telemetry freshness transitions
+  // (ACTIVE -> RECENT FIX -> STALE GPS) smoothly elapse without requiring incoming socket events.
+  const [, setFreshnessTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setFreshnessTick((t) => t + 1);
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
   const [floorRooms, setFloorRooms] = useState([]);
   const [loadingRooms, setLoadingRooms] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -324,6 +339,16 @@ export default function LiveTrackingPage() {
       if (isMounted) setConnectionStatus(status);
     });
 
+    // Track telemetry counter and last received event
+    const unsubTelemetry = trackingSocketService.onTelemetryUpdate((stats) => {
+      if (isMounted) {
+        setEventsReceivedCount(stats.count);
+        if (stats.lastReceivedAt) {
+          setLastEventTimestamp(stats.lastReceivedAt);
+        }
+      }
+    });
+
     trackingSocketService.connect();
 
     // Subscribe to outdoor GPS telemetry updates
@@ -335,8 +360,9 @@ export default function LiveTrackingPage() {
     const unsubIndoor = trackingSocketService.subscribeToIndoorTracking((indoorEvent) => {
       if (!indoorEvent || !indoorEvent.assetId) return;
 
+      const currentFloor = selectedFloorRef.current;
       setFloorAssets((prevList) => {
-        if (selectedFloor && indoorEvent.floorId === selectedFloor.id) {
+        if (currentFloor && indoorEvent.floorId === currentFloor.id) {
           const idx = prevList.findIndex((a) => a.id === indoorEvent.assetId);
           if (idx >= 0) {
             const existing = prevList[idx];
@@ -387,7 +413,7 @@ export default function LiveTrackingPage() {
 
       setSelectedFloorAsset((prev) => {
         if (prev && prev.id === indoorEvent.assetId) {
-          if (selectedFloor && indoorEvent.floorId !== selectedFloor.id) {
+          if (currentFloor && indoorEvent.floorId !== currentFloor.id) {
             return null;
           }
           return { ...prev, ...indoorEvent, id: indoorEvent.assetId };
@@ -460,12 +486,13 @@ export default function LiveTrackingPage() {
     return () => {
       isMounted = false;
       unsubStatus();
+      unsubTelemetry();
       unsubAssets();
       unsubIndoor();
       unsubAlerts();
       unsubTransfers();
     };
-  }, [handleIncomingTelemetry, selectedFloor]);
+  }, [handleIncomingTelemetry]);
 
   // When selected hospital changes, load its buildings
   useEffect(() => {
@@ -847,25 +874,47 @@ export default function LiveTrackingPage() {
   const renderSocketBadge = () => {
     switch (connectionStatus) {
       case SocketStatus.CONNECTED:
+        if (eventsReceivedCount === 0) {
+          return (
+            <span
+              className="badge rounded-pill bg-info-subtle text-info-emphasis border border-info-subtle px-3 py-2 d-inline-flex align-items-center gap-2"
+              title="WebSocket session established; waiting for live GPS coordinate broadcasts from mobile devices"
+            >
+              <span className="bg-info rounded-circle" style={{ width: '8px', height: '8px', animation: 'pulseDot 2s infinite' }} />
+              <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>Live STOMP ● Connected (Awaiting Telemetry)</span>
+            </span>
+          );
+        }
         return (
-          <span className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 d-inline-flex align-items-center gap-2">
+          <span
+            className="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-3 py-2 d-inline-flex align-items-center gap-2"
+            title={`Active live telemetry stream. ${eventsReceivedCount} update(s) received.`}
+          >
             <span className="bg-success rounded-circle" style={{ width: '8px', height: '8px', animation: 'pulseDot 1.5s infinite' }} />
-            <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>Live STOMP ● Connected</span>
+            <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>
+              Live STOMP ● Active ({eventsReceivedCount} {eventsReceivedCount === 1 ? 'update' : 'updates'})
+            </span>
           </span>
         );
       case SocketStatus.CONNECTING:
-      case SocketStatus.RECONNECTING:
         return (
           <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 d-inline-flex align-items-center gap-2">
             <span className="spinner-border spinner-border-sm text-warning" style={{ width: '8px', height: '8px' }} />
             <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>Live STOMP ● Connecting...</span>
           </span>
         );
+      case SocketStatus.RECONNECTING:
+        return (
+          <span className="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle px-3 py-2 d-inline-flex align-items-center gap-2">
+            <span className="spinner-border spinner-border-sm text-warning" style={{ width: '8px', height: '8px' }} />
+            <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>Live STOMP ● Reconnecting...</span>
+          </span>
+        );
       case SocketStatus.ERROR:
         return (
           <span className="badge rounded-pill bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 d-inline-flex align-items-center gap-2">
             <span className="bg-danger rounded-circle" style={{ width: '8px', height: '8px' }} />
-            <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>Live STOMP ● Error</span>
+            <span className="fw-semibold" style={{ fontSize: '0.8rem' }}>Live STOMP ● Disconnected (Error)</span>
           </span>
         );
       case SocketStatus.DISCONNECTED:
@@ -1222,7 +1271,7 @@ export default function LiveTrackingPage() {
                     <strong>Dept Zones:</strong> {geofences.filter((g) => g.active).length}
                   </span>
                   <span>
-                    <strong>Assets:</strong> {filteredAssets.filter((a) => a.latitude != null && a.longitude != null).length} with GPS
+                    <strong>Assets:</strong> {filteredAssets.filter((a) => getGpsTelemetryStatus(a).hasFix).length} with GPS
                   </span>
                 </div>
               </div>
@@ -1821,9 +1870,15 @@ export default function LiveTrackingPage() {
                     <span className="text-dark">{selectedAsset.category || 'Equipment'}</span>
                   </div>
                   <div className="d-flex justify-content-between">
+                    <span>GPS Telemetry:</span>
+                    <span className="text-dark font-monospace" style={{ fontSize: '0.75rem' }}>
+                      {getGpsTelemetryStatus(selectedAsset).label}
+                    </span>
+                  </div>
+                  <div className="d-flex justify-content-between">
                     <span>Last Seen:</span>
                     <span className="text-dark font-monospace" style={{ fontSize: '0.75rem' }}>
-                      {selectedAsset.lastSeen ? new Date(selectedAsset.lastSeen).toISOString() : 'Never'}
+                      {getGpsTelemetryStatus(selectedAsset).lastUpdateText}
                     </span>
                   </div>
                 </div>
@@ -1835,8 +1890,11 @@ export default function LiveTrackingPage() {
           {/* Asset Directory (Universal)                                   */}
           {/* ============================================================== */}
           <div className="card border-0 shadow-sm rounded-3 bg-white flex-grow-1">
-            <div className="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between">
+            <div className="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
               <span className="fw-semibold small text-dark">Hospital Assets Directory ({filteredAssets.length})</span>
+              <span className="badge bg-light text-muted border" style={{ fontSize: '0.7rem' }}>
+                {filteredAssets.filter((a) => getGpsTelemetryStatus(a).hasFix).length} with GPS
+              </span>
             </div>
 
             <div className="p-2 border-bottom bg-light">
@@ -1871,7 +1929,7 @@ export default function LiveTrackingPage() {
               </div>
             </div>
 
-            <div className="list-group list-group-flush overflow-auto" style={{ maxHeight: '300px' }}>
+            <div className="list-group list-group-flush overflow-auto" style={{ maxHeight: '480px' }}>
               {loading ? (
                 <div className="p-3 text-center text-muted small">Loading asset telemetry...</div>
               ) : filteredAssets.length === 0 ? (
@@ -1879,7 +1937,7 @@ export default function LiveTrackingPage() {
               ) : (
                 filteredAssets.map((asset) => {
                   const isSelected = selectedAssetId === asset.id;
-                  const hasGps = asset.latitude != null && asset.longitude != null;
+                  const gpsStatus = getGpsTelemetryStatus(asset);
 
                   return (
                     <button
@@ -1888,29 +1946,30 @@ export default function LiveTrackingPage() {
                       className={`list-group-item list-group-item-action p-2 text-start ${isSelected ? 'active bg-primary-subtle text-primary border-primary' : ''}`}
                       onClick={() => handleSelectAsset(asset)}
                     >
-                      <div className="d-flex justify-content-between align-items-center mb-1">
+                      <div className="d-flex justify-content-between align-items-center mb-1 gap-2">
                         <strong className="small" style={{ color: isSelected ? 'inherit' : 'var(--primary)' }}>
                           {asset.assetCode}
                         </strong>
                         <span
-                          className={`badge rounded-pill ${
-                            hasGps
-                              ? 'bg-success-subtle text-success border border-success-subtle'
-                              : 'bg-secondary-subtle text-secondary border border-secondary-subtle'
-                          }`}
+                          className={`badge rounded-pill ${gpsStatus.badgeClass}`}
                           style={{ fontSize: '0.65rem' }}
+                          title={gpsStatus.lastUpdateText}
                         >
-                          {hasGps ? 'GPS ACTIVE' : 'NO GPS FIX'}
+                          {gpsStatus.label}
                         </span>
                       </div>
-                      <div className="text-truncate fw-semibold" style={{ fontSize: '0.8rem' }}>
+                      <div className="text-truncate fw-semibold mb-1" style={{ fontSize: '0.8rem' }} title={asset.assetName}>
                         {asset.assetName}
                       </div>
-                      <div className="d-flex justify-content-between text-muted" style={{ fontSize: '0.7rem' }}>
-                        <span>{asset.department?.name || asset.department?.code || 'Hospital'}</span>
-                        <span className="text-secondary font-monospace">
+                      <div className="d-flex justify-content-between text-muted align-items-center" style={{ fontSize: '0.7rem' }}>
+                        <span className="text-truncate me-2">{asset.department?.name || asset.department?.code || 'Hospital'}</span>
+                        <span className="text-secondary font-monospace flex-shrink-0">
                           {asset.status}
                         </span>
+                      </div>
+                      <div className="text-muted mt-1 d-flex align-items-center gap-1" style={{ fontSize: '0.68rem' }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '0.75rem' }}>schedule</span>
+                        <span>{gpsStatus.lastUpdateText}</span>
                       </div>
                     </button>
                   );

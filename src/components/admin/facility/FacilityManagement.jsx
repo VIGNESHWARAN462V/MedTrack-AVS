@@ -19,22 +19,33 @@ export default function FacilityManagement() {
   const [selectedFloor, setSelectedFloor] = useState(null);
 
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const [hospitalError, setHospitalError] = useState(null);
 
   // Load initial hospitals list
   const loadHospitals = useCallback(async () => {
     try {
       setLoadingInitial(true);
+      setHospitalError(null);
       const data = await hospitalService.getHospitals();
-      setHospitals(data || []);
-      if (data && data.length > 0 && !selectedHospital) {
-        setSelectedHospital(data[0]);
-      }
+      const list = Array.isArray(data) ? data : [];
+      setHospitals(list);
+      setSelectedHospital((prev) => {
+        if (!prev && list.length > 0) return list[0];
+        if (prev) {
+          const matched = list.find((h) => h.id === prev.id);
+          return matched || (list.length > 0 ? list[0] : null);
+        }
+        return null;
+      });
+      return list;
     } catch (err) {
       console.error('Failed to load hospitals for facility management:', err);
+      setHospitalError('Unable to load hospital facilities. Ensure backend is reachable.');
+      return [];
     } finally {
       setLoadingInitial(false);
     }
-  }, [selectedHospital]);
+  }, []);
 
   useEffect(() => {
     loadHospitals();
@@ -141,11 +152,18 @@ export default function FacilityManagement() {
           <li className="breadcrumb-item">
             <button
               type="button"
-              className="btn btn-link p-0 text-decoration-none fw-semibold text-teal"
+              className="btn btn-link p-0 text-decoration-none fw-semibold text-teal d-inline-flex align-items-center gap-1"
               style={{ color: '#005c55' }}
               onClick={() => setActiveTab('hospitals')}
             >
-              Hospitals ({hospitals.length})
+              <span>Hospitals</span>
+              {loadingInitial ? (
+                <span className="spinner-border spinner-border-sm text-teal ms-1" style={{ width: '0.75rem', height: '0.75rem' }} role="status" aria-hidden="true" />
+              ) : hospitalError ? (
+                <span className="badge bg-danger-subtle text-danger px-1" style={{ fontSize: '0.7rem' }}>Error</span>
+              ) : (
+                <span>({hospitals.length})</span>
+              )}
             </button>
           </li>
 
@@ -300,6 +318,10 @@ export default function FacilityManagement() {
       {/* Tab Panels */}
       {activeTab === 'hospitals' && (
         <HospitalManagementTab
+          hospitals={hospitals}
+          loadingHospitals={loadingInitial}
+          hospitalError={hospitalError}
+          onReloadHospitals={loadHospitals}
           selectedHospital={selectedHospital}
           onSelectHospital={handleSelectHospital}
           onNavigateToBuildings={() => setActiveTab('buildings')}

@@ -2,15 +2,23 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import hospitalService from '../../../services/hospitalService';
 
 export default function HospitalManagementTab({
+  hospitals: propHospitals,
+  loadingHospitals,
+  hospitalError,
+  onReloadHospitals,
   selectedHospital,
   onSelectHospital,
   onNavigateToBuildings,
 }) {
-  const [hospitals, setHospitals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [localHospitals, setLocalHospitals] = useState([]);
+  const [localLoading, setLocalLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+
+  const hospitals = propHospitals !== undefined ? propHospitals : localHospitals;
+  const loading = loadingHospitals !== undefined ? loadingHospitals : localLoading;
+  const activeError = error || hospitalError || null;
 
   // Modal State
   const [modalOpen, setModalOpen] = useState(false);
@@ -29,28 +37,36 @@ export default function HospitalManagementTab({
   // Deactivate confirm modal
   const [deactivateHospital, setDeactivateHospital] = useState(null);
 
-  const fetchHospitals = useCallback(async () => {
+  const refreshHospitals = useCallback(async () => {
+    if (onReloadHospitals) {
+      return await onReloadHospitals();
+    }
     try {
-      setLoading(true);
+      setLocalLoading(true);
       setError(null);
       const data = await hospitalService.getHospitals();
-      setHospitals(data || []);
+      const list = Array.isArray(data) ? data : [];
+      setLocalHospitals(list);
       // If a hospital is already selected, update its reference
       if (selectedHospital) {
-        const found = (data || []).find((h) => h.id === selectedHospital.id);
+        const found = list.find((h) => h.id === selectedHospital.id);
         if (found) onSelectHospital(found);
       }
+      return list;
     } catch (err) {
       console.error('Failed to load hospitals:', err);
       setError('Unable to load hospital facilities. Ensure backend is reachable.');
+      return [];
     } finally {
-      setLoading(false);
+      setLocalLoading(false);
     }
-  }, [selectedHospital, onSelectHospital]);
+  }, [onReloadHospitals, selectedHospital, onSelectHospital]);
 
   useEffect(() => {
-    fetchHospitals();
-  }, [fetchHospitals]);
+    if (propHospitals === undefined) {
+      refreshHospitals();
+    }
+  }, [propHospitals, refreshHospitals]);
 
   const filteredHospitals = useMemo(() => {
     if (!search.trim()) return hospitals;
@@ -144,7 +160,7 @@ export default function HospitalManagementTab({
       }
 
       setModalOpen(false);
-      fetchHospitals();
+      await refreshHospitals();
     } catch (err) {
       console.error('Failed to save hospital:', err);
       const msg = err.response?.data?.message || err.message || 'Failed to save hospital.';
@@ -161,7 +177,7 @@ export default function HospitalManagementTab({
       await hospitalService.deleteHospital(deactivateHospital.id);
       setSuccess(`Hospital "${deactivateHospital.name}" was deactivated.`);
       setDeactivateHospital(null);
-      fetchHospitals();
+      await refreshHospitals();
     } catch (err) {
       console.error('Failed to deactivate hospital:', err);
       setError(err.response?.data?.message || 'Failed to deactivate hospital.');
@@ -197,10 +213,19 @@ export default function HospitalManagementTab({
       </div>
 
       {/* Alerts */}
-      {error && (
-        <div className="alert alert-danger d-flex align-items-center gap-2 py-2 px-3 rounded-3 mb-0" role="alert">
-          <span className="material-symbols-outlined fs-5">error</span>
-          <span className="small">{error}</span>
+      {activeError && (
+        <div className="alert alert-danger d-flex align-items-center justify-content-between py-2 px-3 rounded-3 mb-0" role="alert">
+          <div className="d-flex align-items-center gap-2">
+            <span className="material-symbols-outlined fs-5">error</span>
+            <span className="small">{activeError}</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-danger py-0 px-2 small"
+            onClick={() => refreshHospitals()}
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -211,8 +236,8 @@ export default function HospitalManagementTab({
         </div>
       )}
 
-      {/* Search Bar */}
-      <div className="d-flex align-items-center gap-2">
+      {/* Search Bar & Hospital Count Badge */}
+      <div className="d-flex align-items-center gap-2 flex-wrap">
         <div className="input-group" style={{ maxWidth: '380px' }}>
           <span className="input-group-text bg-white border-end-0">
             <span className="material-symbols-outlined text-muted fs-6">search</span>
@@ -225,8 +250,10 @@ export default function HospitalManagementTab({
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <span className="badge bg-light text-muted border px-2 py-2">
-          {filteredHospitals.length} {filteredHospitals.length === 1 ? 'Hospital' : 'Hospitals'}
+        <span className="badge bg-light text-muted border px-3 py-2 fw-semibold">
+          {search.trim()
+            ? `Showing ${filteredHospitals.length} of ${hospitals.length} ${hospitals.length === 1 ? 'Hospital' : 'Hospitals'}`
+            : `${hospitals.length} ${hospitals.length === 1 ? 'Hospital' : 'Hospitals'}`}
         </span>
       </div>
 
@@ -249,15 +276,15 @@ export default function HospitalManagementTab({
         </div>
       ) : (
         <div className="table-responsive border rounded-3 bg-white">
-          <table className="table table-hover align-middle mb-0">
+          <table className="table table-hover align-middle mb-0" style={{ minWidth: '820px' }}>
             <thead className="table-light">
               <tr style={{ fontSize: '0.78rem' }}>
-                <th className="text-uppercase text-muted ps-3">Hospital / Campus</th>
-                <th className="text-uppercase text-muted">Code</th>
-                <th className="text-uppercase text-muted">Geographic Coordinates</th>
-                <th className="text-uppercase text-muted">Geofence Radius</th>
-                <th className="text-uppercase text-muted">Status</th>
-                <th className="text-uppercase text-muted text-end pe-3">Actions</th>
+                <th className="text-uppercase text-muted ps-3" style={{ minWidth: '220px' }}>Hospital / Campus</th>
+                <th className="text-uppercase text-muted" style={{ minWidth: '100px' }}>Code</th>
+                <th className="text-uppercase text-muted" style={{ minWidth: '180px' }}>Geographic Coordinates</th>
+                <th className="text-uppercase text-muted" style={{ minWidth: '130px' }}>Geofence Radius</th>
+                <th className="text-uppercase text-muted" style={{ minWidth: '90px' }}>Status</th>
+                <th className="text-uppercase text-muted text-end pe-3" style={{ minWidth: '160px' }}>Actions</th>
               </tr>
             </thead>
             <tbody style={{ fontSize: '0.85rem' }}>
@@ -340,7 +367,7 @@ export default function HospitalManagementTab({
                     </td>
 
                     <td className="text-end pe-3" onClick={(e) => e.stopPropagation()}>
-                      <div className="btn-group btn-group-sm">
+                      <div className="btn-group btn-group-sm" style={{ whiteSpace: 'nowrap' }}>
                         <button
                           type="button"
                           className="btn btn-outline-primary d-inline-flex align-items-center gap-1"

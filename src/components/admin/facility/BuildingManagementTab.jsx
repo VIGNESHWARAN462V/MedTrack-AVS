@@ -273,7 +273,7 @@ export default function BuildingManagementTab({
         </div>
       ) : (
         <div className="table-responsive border rounded-3 bg-white">
-          <table className="table table-hover align-middle mb-0">
+          <table className="table table-hover align-middle mb-0" style={{ minWidth: '780px' }}>
             <thead className="table-light">
               <tr style={{ fontSize: '0.78rem' }}>
                 <th className="text-uppercase text-muted ps-3">Building Name</th>
