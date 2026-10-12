@@ -39,22 +39,42 @@ public class DataInitializer implements CommandLineRunner {
     @Value("${medtrack.dev.staff-password:${MEDTRACK_DEV_STAFF_PASSWORD:}}")
     private String devStaffPassword;
 
+    @Value("${medtrack.seed.demo-data:${MEDTRACK_SEED_DEMO_DATA:false}}")
+    private boolean seedDemoData;
+
+    public boolean isSeedDemoData() {
+        return seedDemoData;
+    }
+
+    void setSeedDemoData(boolean seedDemoData) {
+        this.seedDemoData = seedDemoData;
+    }
+
     @Override
     @Transactional
     public void run(String... args) {
-        log.info("Starting MedTrack - AVS Phase 10 Data Layer Seeding...");
+        log.info("Starting MedTrack - AVS Data Layer Initialization (demoDataEnabled={})...", seedDemoData);
 
+        // Required baseline system initialization across all environments
         seedRoles();
-        seedDepartments();
-        seedHospitals();
-        seedHospitalHierarchy();
-        seedUsers();
-        seedAssets();
-        seedAssetAssignments();
-        seedGeofences();
-        seedIndoorAssetPositions();
 
-        log.info("MedTrack - AVS Phase 10 Data Layer Seeding completed successfully.");
+        if (seedDemoData) {
+            log.info("Demonstration data seeding is ENABLED. Populating demo departments, facilities, users, and assets...");
+            seedDepartments();
+            seedHospitals();
+            seedHospitalHierarchy();
+            seedUsers();
+            seedAssets();
+            seedAssetAssignments();
+            seedGeofences();
+            seedIndoorAssetPositions();
+            log.info("MedTrack - AVS Demonstration Data Seeding completed successfully.");
+        } else {
+            log.info("Demonstration data seeding is DISABLED (medtrack.seed.demo-data=false). " +
+                    "Production baseline preserved: skipping insertion of demonstration facilities, assets, and demo accounts.");
+        }
+
+        log.info("MedTrack - AVS Data Layer Initialization completed successfully.");
     }
 
     private void seedRoles() {
