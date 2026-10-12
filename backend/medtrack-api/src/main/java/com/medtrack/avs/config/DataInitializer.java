@@ -24,6 +24,10 @@ public class DataInitializer implements CommandLineRunner {
     private final AssetRepository assetRepository;
     private final AssetAssignmentRepository assetAssignmentRepository;
     private final GeofenceRepository geofenceRepository;
+    private final HospitalRepository hospitalRepository;
+    private final BuildingRepository buildingRepository;
+    private final FloorRepository floorRepository;
+    private final RoomRepository roomRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${medtrack.dev.admin-password:${MEDTRACK_DEV_ADMIN_PASSWORD:}}")
@@ -42,10 +46,13 @@ public class DataInitializer implements CommandLineRunner {
 
         seedRoles();
         seedDepartments();
+        seedHospitals();
+        seedHospitalHierarchy();
         seedUsers();
         seedAssets();
         seedAssetAssignments();
         seedGeofences();
+        seedIndoorAssetPositions();
 
         log.info("MedTrack - AVS Phase 10 Data Layer Seeding completed successfully.");
     }
@@ -226,5 +233,198 @@ public class DataInitializer implements CommandLineRunner {
         } else {
             log.debug("Geofence already exists: {}", name);
         }
+    }
+
+    private void seedHospitals() {
+        if (!hospitalRepository.existsByCode("AVS-MAIN")) {
+            Hospital hospital = Hospital.builder()
+                    .name("Apex Valley Central Hospital")
+                    .code("AVS-MAIN")
+                    .address("100 Hospital Way, Medical District")
+                    .latitude(11.496155)
+                    .longitude(77.278545)
+                    .geofenceRadiusMeters(150.0)
+                    .active(true)
+                    .build();
+            hospitalRepository.save(hospital);
+            log.info("Seeded Hospital: {} (Code: {}, Coords: [11.496155, 77.278545])",
+                    hospital.getName(), hospital.getCode());
+        } else {
+            log.debug("Hospital already exists: AVS-MAIN");
+        }
+    }
+
+    private void seedHospitalHierarchy() {
+        Hospital hospital = hospitalRepository.findByCode("AVS-MAIN").orElse(null);
+        if (hospital == null) {
+            log.warn("Cannot seed facility hierarchy: Hospital AVS-MAIN not found.");
+            return;
+        }
+
+        // 1. Seed Buildings
+        Building erBuilding = buildingRepository.findByHospitalIdAndCode(hospital.getId(), "BLD-ER-ACUTE")
+                .orElseGet(() -> {
+                    Building b = Building.builder()
+                            .hospital(hospital)
+                            .name("Emergency & Acute Care Block")
+                            .code("BLD-ER-ACUTE")
+                            .description("Emergency Trauma Center, Critical Care & Inpatient Wards")
+                            .latitude(11.496500)
+                            .longitude(77.278800)
+                            .active(true)
+                            .build();
+                    Building saved = buildingRepository.save(b);
+                    log.info("Seeded Building: {} (Code: {})", saved.getName(), saved.getCode());
+                    return saved;
+                });
+
+        Building cardBuilding = buildingRepository.findByHospitalIdAndCode(hospital.getId(), "BLD-CARD-PAV")
+                .orElseGet(() -> {
+                    Building b = Building.builder()
+                            .hospital(hospital)
+                            .name("Cardiology Pavilion")
+                            .code("BLD-CARD-PAV")
+                            .description("Cardiovascular Medicine & Diagnostic Catheterization Suites")
+                            .latitude(11.495800)
+                            .longitude(77.278300)
+                            .active(true)
+                            .build();
+                    Building saved = buildingRepository.save(b);
+                    log.info("Seeded Building: {} (Code: {})", saved.getName(), saved.getCode());
+                    return saved;
+                });
+
+        // 2. Seed Floors
+        Floor erGround = floorRepository.findByBuildingIdAndFloorNumber(erBuilding.getId(), 0)
+                .orElseGet(() -> {
+                    Floor f = Floor.builder()
+                            .building(erBuilding)
+                            .floorNumber(0)
+                            .displayName("Ground Floor")
+                            .active(true)
+                            .build();
+                    Floor saved = floorRepository.save(f);
+                    log.info("Seeded Floor: {} for Building {}", saved.getDisplayName(), erBuilding.getName());
+                    return saved;
+                });
+
+        Floor erFloor1 = floorRepository.findByBuildingIdAndFloorNumber(erBuilding.getId(), 1)
+                .orElseGet(() -> {
+                    Floor f = Floor.builder()
+                            .building(erBuilding)
+                            .floorNumber(1)
+                            .displayName("Floor 1")
+                            .active(true)
+                            .build();
+                    Floor saved = floorRepository.save(f);
+                    log.info("Seeded Floor: {} for Building {}", saved.getDisplayName(), erBuilding.getName());
+                    return saved;
+                });
+
+        Floor erFloor2 = floorRepository.findByBuildingIdAndFloorNumber(erBuilding.getId(), 2)
+                .orElseGet(() -> {
+                    Floor f = Floor.builder()
+                            .building(erBuilding)
+                            .floorNumber(2)
+                            .displayName("Floor 2")
+                            .active(true)
+                            .build();
+                    Floor saved = floorRepository.save(f);
+                    log.info("Seeded Floor: {} for Building {}", saved.getDisplayName(), erBuilding.getName());
+                    return saved;
+                });
+
+        Floor cardGround = floorRepository.findByBuildingIdAndFloorNumber(cardBuilding.getId(), 0)
+                .orElseGet(() -> {
+                    Floor f = Floor.builder()
+                            .building(cardBuilding)
+                            .floorNumber(0)
+                            .displayName("Ground Floor")
+                            .active(true)
+                            .build();
+                    Floor saved = floorRepository.save(f);
+                    log.info("Seeded Floor: {} for Building {}", saved.getDisplayName(), cardBuilding.getName());
+                    return saved;
+                });
+
+        // 3. Seed Rooms
+        Department erDept = departmentRepository.findByCode("ER").orElse(null);
+        Department icuDept = departmentRepository.findByCode("ICU").orElse(null);
+        Department cardDept = departmentRepository.findByCode("CARD").orElse(null);
+
+        createRoomIfNotFound(erGround, erDept, "ER-BAY-01", "Emergency Trauma Bay",
+                "Rapid triage, resuscitation & acute trauma monitoring", 5.0, 10.0, 35.0, 30.0);
+
+        createRoomIfNotFound(erFloor1, icuDept, "ICU-ROOM-101", "Intensive Care Unit",
+                "High-acuity intensive telemetry and ventilator beds", 45.0, 10.0, 45.0, 35.0);
+
+        createRoomIfNotFound(cardGround, cardDept, "CARD-CLINIC-01", "Cardiology Diagnostic Clinic",
+                "ECG, echocardiogram and catheterization consultation", 10.0, 50.0, 40.0, 35.0);
+
+        createRoomIfNotFound(erGround, null, "STOR-CENTRAL-01", "Central Clinical Equipment Storage",
+                "Secured reserve for infusion pumps and portable diagnostics", 55.0, 55.0, 35.0, 30.0);
+    }
+
+    private void createRoomIfNotFound(Floor floor, Department department, String roomNumber,
+                                      String name, String description,
+                                      double x, double y, double width, double height) {
+        if (!roomRepository.existsByFloorIdAndRoomNumber(floor.getId(), roomNumber)) {
+            Room room = Room.builder()
+                    .floor(floor)
+                    .department(department)
+                    .roomNumber(roomNumber)
+                    .name(name)
+                    .description(description)
+                    .xPosition(x)
+                    .yPosition(y)
+                    .width(width)
+                    .height(height)
+                    .active(true)
+                    .build();
+            roomRepository.save(room);
+            log.info("Seeded Room: {} ({}) on Floor: {}", name, roomNumber, floor.getDisplayName());
+        } else {
+            log.debug("Room already exists: {} on Floor: {}", roomNumber, floor.getDisplayName());
+        }
+    }
+
+    private void seedIndoorAssetPositions() {
+        roomRepository.findFirstByRoomNumber("ER-BAY-01").ifPresent(room -> {
+            assignIndoorPositionIfUnset("ECG-002", room, 20.0, 25.0);
+        });
+
+        roomRepository.findFirstByRoomNumber("ICU-ROOM-101").ifPresent(room -> {
+            assignIndoorPositionIfUnset("PUMP-001", room, 65.0, 25.0);
+        });
+
+        roomRepository.findFirstByRoomNumber("CARD-CLINIC-01").ifPresent(room -> {
+            assignIndoorPositionIfUnset("MON-002", room, 30.0, 65.0);
+        });
+
+        roomRepository.findFirstByRoomNumber("STOR-CENTRAL-01").ifPresent(room -> {
+            assignIndoorPositionIfUnset("DEF-001", room, 70.0, 70.0);
+        });
+    }
+
+    private void assignIndoorPositionIfUnset(String assetCode, Room room, double x, double y) {
+        assetRepository.findByAssetCode(assetCode).ifPresent(asset -> {
+            if (asset.getFloor() == null) {
+                Floor floor = room.getFloor();
+                Building building = floor.getBuilding();
+                Hospital hospital = building.getHospital();
+
+                asset.setHospital(hospital);
+                asset.setBuilding(building);
+                asset.setFloor(floor);
+                asset.setRoom(room);
+                asset.setIndoorX(x);
+                asset.setIndoorY(y);
+                asset.setIndoorLocationSource(IndoorLocationSource.MANUAL_CONFIG);
+                asset.setIndoorUpdatedAt(java.time.Instant.now());
+                assetRepository.save(asset);
+                log.info("Seeded indoor location for Asset {} ({}, {}) in Room {}",
+                        assetCode, x, y, room.getRoomNumber());
+            }
+        });
     }
 }

@@ -80,4 +80,28 @@ public class TrackingWebSocketBroadcaster {
             messagingTemplate.convertAndSend("/topic/transfers/" + wsTransfer.getAssetId(), wsTransfer);
         }
     }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
+    public void onIndoorTrackingPersisted(com.medtrack.avs.event.IndoorTrackingPersistedEvent event) {
+        com.medtrack.avs.dto.IndoorTrackingEvent wsIndoor = event.getIndoorTrackingEvent();
+        if (wsIndoor == null) {
+            return;
+        }
+
+        log.info("Broadcasting STOMP indoor location for asset {}: floorId={}, roomId={}, x={}, y={}",
+                wsIndoor.getAssetCode(), wsIndoor.getFloorId(), wsIndoor.getRoomId(), wsIndoor.getIndoorX(), wsIndoor.getIndoorY());
+
+        // 1. Broadcast to global indoor tracking topic
+        messagingTemplate.convertAndSend("/topic/tracking/indoor", wsIndoor);
+
+        // 2. Broadcast to floor-specific topic
+        if (wsIndoor.getFloorId() != null) {
+            messagingTemplate.convertAndSend("/topic/tracking/indoor/floors/" + wsIndoor.getFloorId(), wsIndoor);
+        }
+
+        // 3. Broadcast to asset-specific topic
+        if (wsIndoor.getAssetId() != null) {
+            messagingTemplate.convertAndSend("/topic/tracking/indoor/assets/" + wsIndoor.getAssetId(), wsIndoor);
+        }
+    }
 }

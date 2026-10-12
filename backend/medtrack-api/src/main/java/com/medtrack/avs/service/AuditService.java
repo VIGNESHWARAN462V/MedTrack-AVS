@@ -67,4 +67,22 @@ public class AuditService {
             log.error("Failed to record transfer audit log: {}", e.getMessage());
         }
     }
+
+    @Transactional
+    public void logFacilityEvent(User user, String action, String entityType, Long entityId, String description) {
+        try {
+            AuditLog auditLog = AuditLog.builder()
+                    .user(user)
+                    .action(action)
+                    .entityType(entityType)
+                    .entityId(entityId)
+                    .description(description)
+                    .build();
+            auditLogRepository.save(auditLog);
+            log.info("Facility audit log recorded: action={}, entityType={}, entityId={}, userId={}",
+                    action, entityType, entityId, user != null ? user.getId() : "anonymous");
+        } catch (Exception e) {
+            log.error("Failed to record facility audit log: {}", e.getMessage());
+        }
+    }
 }

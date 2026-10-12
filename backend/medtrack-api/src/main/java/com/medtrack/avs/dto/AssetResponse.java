@@ -27,6 +27,22 @@ public class AssetResponse {
     private Integer batteryLevel;
     private String qrCode;
     private Instant lastSeen;
+    private Long hospitalId;
+    private String hospitalName;
+    private Long buildingId;
+    private String buildingName;
+    private Long floorId;
+    private String floorDisplayName;
+    private Long roomId;
+    private String roomName;
+    private String roomNumber;
+    @com.fasterxml.jackson.annotation.JsonProperty("indoorX")
+    private Double indoorX;
+    @com.fasterxml.jackson.annotation.JsonProperty("indoorY")
+    private Double indoorY;
+    private com.medtrack.avs.entity.IndoorLocationSource indoorLocationSource;
+    private Instant indoorUpdatedAt;
+    private String locationStatus;
     private Instant createdAt;
     private Instant updatedAt;
 }

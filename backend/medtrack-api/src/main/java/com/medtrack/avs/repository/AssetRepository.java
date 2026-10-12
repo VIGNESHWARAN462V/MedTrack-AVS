@@ -51,5 +51,20 @@ public interface AssetRepository extends JpaRepository<Asset, Long> {
             @Param("status") AssetStatus status,
             @Param("departmentId") Long departmentId,
             @Param("category") String category);
+
+    @Query("SELECT DISTINCT a FROM Asset a " +
+            "LEFT JOIN FETCH a.department " +
+            "LEFT JOIN FETCH a.hospital " +
+            "LEFT JOIN FETCH a.building " +
+            "LEFT JOIN FETCH a.floor " +
+            "LEFT JOIN FETCH a.room " +
+            "WHERE a.floor.id = :floorId")
+    List<Asset> findByFloorIdWithHierarchy(@Param("floorId") Long floorId);
+
+    List<Asset> findByFloorId(Long floorId);
+
+    long countByFloorId(Long floorId);
+
+    long countByRoomId(Long roomId);
 }
 

@@ -13,7 +13,9 @@ import java.time.Instant;
         @Index(name = "idx_asset_serial", columnList = "serial_number"),
         @Index(name = "idx_asset_status", columnList = "status"),
         @Index(name = "idx_asset_qr", columnList = "qr_code"),
-        @Index(name = "idx_asset_dept", columnList = "department_id")
+        @Index(name = "idx_asset_dept", columnList = "department_id"),
+        @Index(name = "idx_asset_floor", columnList = "floor_id"),
+        @Index(name = "idx_asset_room", columnList = "room_id")
 })
 @Getter
 @Setter
@@ -64,6 +66,35 @@ public class Asset {
 
     @Column(name = "last_seen", precision = 6)
     private Instant lastSeen;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "hospital_id")
+    private Hospital hospital;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "building_id")
+    private Building building;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "floor_id")
+    private Floor floor;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;
+
+    @Column(name = "indoor_x")
+    private Double indoorX;
+
+    @Column(name = "indoor_y")
+    private Double indoorY;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "indoor_location_source", length = 30)
+    private IndoorLocationSource indoorLocationSource;
+
+    @Column(name = "indoor_updated_at", precision = 6)
+    private Instant indoorUpdatedAt;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false, precision = 6)

@@ -1,19 +1,46 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 /**
- * Helper component to pan/fit the map when selected asset or asset list changes.
+ * Helper component to pan/fit the map when selected target or hospital changes.
  */
-function MapAutoCenter({ center, selectedAssetCoords }) {
+function MapAutoCenter({ hospitalCenter, selectedCoords }) {
   const map = useMap();
 
   useEffect(() => {
-    if (selectedAssetCoords && selectedAssetCoords[0] && selectedAssetCoords[1]) {
-      map.panTo(selectedAssetCoords, { animate: true, duration: 0.8 });
+    if (selectedCoords && selectedCoords[0] && selectedCoords[1]) {
+      map.panTo(selectedCoords, { animate: true, duration: 0.8 });
+    } else if (hospitalCenter && hospitalCenter[0] && hospitalCenter[1]) {
+      map.panTo(hospitalCenter, { animate: true, duration: 0.8 });
     }
-  }, [map, selectedAssetCoords]);
+  }, [map, selectedCoords, hospitalCenter]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      map.invalidateSize();
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Attach ResizeObserver to Leaflet container to handle sidebar and flex changes
+    let ro = null;
+    const container = map.getContainer();
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      ro = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      ro.observe(container);
+    }
+
+    // Slight delay to ensure parent card animations settle
+    const timer = setTimeout(handleResize, 250);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (ro) ro.disconnect();
+      clearTimeout(timer);
+    };
+  }, [map]);
 
   return null;
 }
@@ -63,6 +90,31 @@ function createAssetIcon(asset, isSelected) {
   });
 }
 
+/**
+ * Creates custom HTML divIcon for hospital building markers.
+ */
+function createBuildingIcon(building, isSelected) {
+  const borderClass = isSelected ? 'border border-2 border-teal shadow-lg' : 'shadow-sm';
+  const scale = isSelected ? 'scale(1.15)' : 'scale(1)';
+
+  const html = `
+    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; transform: ${scale}; transition: transform 0.2s ease;">
+      <div class="${borderClass}" style="position: relative; width: 36px; height: 36px; border-radius: 10px; background: #0f766e; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.25);">
+        <span class="material-symbols-outlined" style="font-size: 17px; line-height: 1;">domain</span>
+        <span style="font-size: 7px; font-weight: 700; line-height: 1; letter-spacing: -0.2px; max-width: 32px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(building.code?.replace('BLD-', '') || 'BLD')}</span>
+      </div>
+    </div>
+  `;
+
+  return L.divIcon({
+    html,
+    className: 'custom-building-marker',
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -22],
+  });
+}
+
 function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, (m) => {
     switch (m) {
@@ -70,7 +122,6 @@ function escapeHtml(str) {
       case '<': return '&lt;';
       case '>': return '&gt;';
       case '"': return '&quot;';
-      case "'": return '&#039;';
       default: return m;
     }
   });
@@ -81,46 +132,60 @@ export default function LiveTrackingMap({
   selectedAsset = null,
   onSelectAsset = () => {},
   geofences = [],
+  hospital = null,
+  buildings = [],
+  selectedBuilding = null,
+  onSelectBuilding = () => {},
+  buildingFloors = [],
+  loadingFloors = false,
+  onOpenIndoorMap = () => {},
   defaultCenter = [11.496155, 77.278545],
   defaultZoom = 17,
 }) {
-  // Filter assets that have valid GPS coordinates
+  const [showLegend, setShowLegend] = useState(true);
+
+  // Filter assets that have valid GPS coordinates (outdoor map requires valid lat/lon)
   const mappedAssets = useMemo(() => {
     return assets.filter(
       (a) => a.latitude != null && a.longitude != null && !isNaN(a.latitude) && !isNaN(a.longitude)
     );
   }, [assets]);
 
-  // Filter only active geofences with valid coordinates and radius
+  // Filter buildings with valid GPS coordinates
+  const mappedBuildings = useMemo(() => {
+    return (buildings || []).filter(
+      (b) => b.latitude != null && b.longitude != null && !isNaN(b.latitude) && !isNaN(b.longitude)
+    );
+  }, [buildings]);
+
+  // Active department-level geofences
   const activeGeofences = useMemo(() => {
     return (geofences || []).filter(
       (g) => g.active && g.centerLatitude != null && g.centerLongitude != null && g.radiusMeters > 0
     );
   }, [geofences]);
 
-  // Compute center: either selected asset, first mapped asset, or default hospital center
-  const center = useMemo(() => {
-    if (selectedAsset && selectedAsset.latitude != null && selectedAsset.longitude != null) {
-      return [selectedAsset.latitude, selectedAsset.longitude];
-    }
-    if (mappedAssets.length > 0) {
-      return [mappedAssets[0].latitude, mappedAssets[0].longitude];
-    }
-    if (activeGeofences.length > 0) {
-      return [activeGeofences[0].centerLatitude, activeGeofences[0].centerLongitude];
+  // Hospital campus coordinates
+  const hospitalCenter = useMemo(() => {
+    if (hospital && hospital.latitude != null && hospital.longitude != null) {
+      return [hospital.latitude, hospital.longitude];
     }
     return defaultCenter;
-  }, [selectedAsset, mappedAssets, activeGeofences, defaultCenter]);
+  }, [hospital, defaultCenter]);
 
+  // Coords to pan to if asset or building is selected
   const selectedCoords = useMemo(() => {
     if (selectedAsset && selectedAsset.latitude != null && selectedAsset.longitude != null) {
       return [selectedAsset.latitude, selectedAsset.longitude];
     }
+    if (selectedBuilding && selectedBuilding.latitude != null && selectedBuilding.longitude != null) {
+      return [selectedBuilding.latitude, selectedBuilding.longitude];
+    }
     return null;
-  }, [selectedAsset]);
+  }, [selectedAsset, selectedBuilding]);
 
   return (
-    <div className="position-relative w-100 h-100 rounded-3 overflow-hidden border shadow-sm" style={{ minHeight: '520px', background: '#e5e7eb' }}>
+    <div className="position-relative w-100 h-100 rounded-3 overflow-hidden border shadow-sm" style={{ minHeight: '540px', background: '#e5e7eb' }}>
       <style>{`
         @keyframes pulseRing {
           0% { transform: scale(0.7); opacity: 0.9; }
@@ -131,13 +196,16 @@ export default function LiveTrackingMap({
           height: 100%;
           font-family: inherit;
         }
+        .campus-perimeter-circle {
+          filter: drop-shadow(0 2px 4px rgba(0, 92, 85, 0.2));
+        }
       `}</style>
 
       <MapContainer
-        center={center}
+        center={hospitalCenter}
         zoom={defaultZoom}
         scrollWheelZoom={true}
-        style={{ width: '100%', height: '100%', minHeight: '520px' }}
+        style={{ width: '100%', height: '100%', minHeight: '540px' }}
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -145,12 +213,64 @@ export default function LiveTrackingMap({
           maxZoom={19}
         />
 
-        <MapAutoCenter center={center} selectedAssetCoords={selectedCoords} />
+        <MapAutoCenter hospitalCenter={hospitalCenter} selectedCoords={selectedCoords} />
 
-        {/* Render Active Geofence Zones */}
+        {/* 1. Hospital Campus Boundary Geofence */}
+        {hospital && hospital.latitude != null && hospital.longitude != null && (
+          <React.Fragment>
+            <Circle
+              center={[hospital.latitude, hospital.longitude]}
+              radius={hospital.geofenceRadiusMeters || 150}
+              pathOptions={{
+                color: '#005c55',
+                fillColor: '#005c55',
+                fillOpacity: 0.06,
+                weight: 2.5,
+                dashArray: '8, 8',
+                className: 'campus-perimeter-circle',
+              }}
+            >
+              <Popup>
+                <div className="p-1" style={{ minWidth: '190px' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <strong className="text-teal" style={{ color: '#005c55' }}>{hospital.name}</strong>
+                    <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>CAMPUS</span>
+                  </div>
+                  <div className="text-muted small mb-1">
+                    <strong>Facility Code:</strong> {hospital.code}
+                  </div>
+                  {hospital.address && (
+                    <div className="text-muted small mb-1">
+                      <strong>Address:</strong> {hospital.address}
+                    </div>
+                  )}
+                  <div className="text-muted small mb-1">
+                    <strong>Campus Geofence:</strong> {hospital.geofenceRadiusMeters || 150}m radius
+                  </div>
+                  <div className="text-muted small">
+                    <strong>Center GPS:</strong> {hospital.latitude.toFixed(6)}, {hospital.longitude.toFixed(6)}
+                  </div>
+                </div>
+              </Popup>
+            </Circle>
+
+            {/* Subtle Hospital Landmark Center Pin */}
+            <Circle
+              center={[hospital.latitude, hospital.longitude]}
+              radius={2.5}
+              pathOptions={{
+                color: '#005c55',
+                fillColor: '#005c55',
+                fillOpacity: 0.9,
+                weight: 1,
+              }}
+            />
+          </React.Fragment>
+        )}
+
+        {/* 2. Department-Level Geofences */}
         {activeGeofences.map((geo) => (
           <React.Fragment key={`geofence-${geo.id}`}>
-            {/* Geofence Perimeter Circle */}
             <Circle
               center={[geo.centerLatitude, geo.centerLongitude]}
               radius={geo.radiusMeters}
@@ -166,7 +286,7 @@ export default function LiveTrackingMap({
                 <div className="p-1" style={{ minWidth: '160px' }}>
                   <div className="d-flex align-items-center justify-content-between mb-1">
                     <strong className="text-primary">{geo.name}</strong>
-                    <span className="badge bg-success" style={{ fontSize: '0.65rem' }}>ACTIVE</span>
+                    <span className="badge bg-primary" style={{ fontSize: '0.65rem' }}>DEPT ZONE</span>
                   </div>
                   <div className="text-muted small mb-1">
                     <strong>Department:</strong> {geo.departmentName || geo.departmentCode || (geo.department ? geo.department.name || geo.department.code : 'Hospital')}
@@ -175,13 +295,12 @@ export default function LiveTrackingMap({
                     <strong>Radius:</strong> {geo.radiusMeters} meters
                   </div>
                   <div className="text-muted small">
-                    <strong>Center:</strong> {geo.centerLatitude?.toFixed(6)}, {geo.centerLongitude?.toFixed(6)}
+                    <strong>Center GPS:</strong> {geo.centerLatitude?.toFixed(6)}, {geo.centerLongitude?.toFixed(6)}
                   </div>
                 </div>
               </Popup>
             </Circle>
 
-            {/* Subtle Geofence Center Pin */}
             <Circle
               center={[geo.centerLatitude, geo.centerLongitude]}
               radius={2}
@@ -195,6 +314,90 @@ export default function LiveTrackingMap({
           </React.Fragment>
         ))}
 
+        {/* 3. Building Markers */}
+        {mappedBuildings.map((building) => {
+          const isSelected = selectedBuilding && selectedBuilding.id === building.id;
+          const pos = [building.latitude, building.longitude];
+
+          return (
+            <Marker
+              key={`building-${building.id}`}
+              position={pos}
+              icon={createBuildingIcon(building, isSelected)}
+              eventHandlers={{
+                click: () => onSelectBuilding(building),
+              }}
+            >
+              <Popup>
+                <div className="p-1" style={{ minWidth: '220px' }}>
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <strong className="text-teal" style={{ color: '#0f766e' }}>{building.name}</strong>
+                    <span className="badge bg-secondary" style={{ fontSize: '0.65rem' }}>
+                      {building.code}
+                    </span>
+                  </div>
+
+                  {building.description && (
+                    <div className="text-muted small mb-2" style={{ fontSize: '0.75rem' }}>
+                      {building.description}
+                    </div>
+                  )}
+
+                  <div className="p-2 rounded bg-light border mb-2" style={{ fontSize: '0.75rem' }}>
+                    <div className="d-flex justify-content-between mb-1">
+                      <span className="text-muted">Status:</span>
+                      <span className="fw-semibold text-success">{building.active ? 'Operational' : 'Inactive'}</span>
+                    </div>
+                    <div className="d-flex justify-content-between mb-1">
+                      <span className="text-muted">GPS Coords:</span>
+                      <span className="font-monospace text-dark">{building.latitude.toFixed(6)}, {building.longitude.toFixed(6)}</span>
+                    </div>
+                    <div className="d-flex justify-content-between">
+                      <span className="text-muted">Floors Configured:</span>
+                      <span className="fw-bold text-dark">{building.floorCount ?? (buildingFloors.length || 0)}</span>
+                    </div>
+                  </div>
+
+                  {/* Floor Breakdown */}
+                  {isSelected && (
+                    <div className="mb-2">
+                      <div className="text-uppercase fw-semibold text-muted mb-1" style={{ fontSize: '0.7rem' }}>
+                        Available Levels:
+                      </div>
+                      {loadingFloors ? (
+                        <div className="text-center py-1">
+                          <span className="spinner-border spinner-border-sm text-primary me-1" role="status" />
+                          <small className="text-muted">Loading floors...</small>
+                        </div>
+                      ) : buildingFloors && buildingFloors.length > 0 ? (
+                        <div className="d-flex flex-wrap gap-1">
+                          {buildingFloors.map((fl) => (
+                            <span key={fl.id} className="badge bg-white text-dark border" style={{ fontSize: '0.68rem' }}>
+                              {fl.displayName} {fl.floorNumber != null ? `(L${fl.floorNumber})` : ''}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <small className="text-muted d-block">No floor levels configured yet.</small>
+                      )}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-stitch-primary w-100 d-flex align-items-center justify-content-center gap-1 mt-1"
+                    onClick={() => onOpenIndoorMap(building)}
+                  >
+                    <span className="material-symbols-outlined fs-6">floor</span>
+                    <span>Open Indoor Map</span>
+                  </button>
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+
+        {/* 4. Live GPS Assets */}
         {mappedAssets.map((asset) => {
           const isSelected = selectedAsset && selectedAsset.id === asset.id;
           const pos = [asset.latitude, asset.longitude];
@@ -239,7 +442,7 @@ export default function LiveTrackingMap({
                 </Popup>
               </Marker>
 
-              {/* Draw accuracy circle if asset is selected and accuracy is available */}
+              {/* Draw accuracy circle if asset is selected */}
               {isSelected && asset.gpsAccuracy && asset.gpsAccuracy > 0 && (
                 <Circle
                   center={pos}
@@ -257,6 +460,54 @@ export default function LiveTrackingMap({
           );
         })}
       </MapContainer>
+
+      {/* Floating Map Legend */}
+      <div
+        className="position-absolute bg-white bg-opacity-95 shadow-sm rounded-3 p-2 border"
+        style={{
+          bottom: '16px',
+          right: '16px',
+          zIndex: 1000,
+          fontSize: '0.725rem',
+          maxWidth: '240px',
+        }}
+      >
+        <div className="d-flex align-items-center justify-content-between mb-1">
+          <span className="fw-bold text-dark d-flex align-items-center gap-1">
+            <span className="material-symbols-outlined fs-6 text-primary">layers</span>
+            <span>Map Layers</span>
+          </span>
+          <button
+            type="button"
+            className="btn btn-link p-0 text-muted"
+            onClick={() => setShowLegend(!showLegend)}
+            style={{ textDecoration: 'none', fontSize: '0.65rem' }}
+          >
+            {showLegend ? 'Hide' : 'Show'}
+          </button>
+        </div>
+
+        {showLegend && (
+          <div className="d-flex flex-column gap-1 pt-1 border-top">
+            <div className="d-flex align-items-center gap-2">
+              <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px dashed #005c55', background: 'rgba(0, 92, 85, 0.15)', display: 'inline-block' }} />
+              <span className="text-muted">Campus Geofence ({hospital?.geofenceRadiusMeters || 150}m)</span>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2px dashed #2563eb', background: 'rgba(59, 130, 246, 0.2)', display: 'inline-block' }} />
+              <span className="text-muted">Department Geofences</span>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span style={{ width: '12px', height: '12px', borderRadius: '3px', background: '#0f766e', display: 'inline-block' }} />
+              <span className="text-muted">Hospital Buildings ({mappedBuildings.length})</span>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#005c55', display: 'inline-block' }} />
+              <span className="text-muted">Medical Assets ({mappedAssets.length} GPS)</span>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

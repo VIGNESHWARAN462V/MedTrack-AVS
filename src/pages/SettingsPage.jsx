@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import FacilityManagement from '../components/admin/facility/FacilityManagement';
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const isAdmin = roles?.includes('ADMIN') || roles?.includes('ROLE_ADMIN');
   const [audioAlerts, setAudioAlerts] = useState(() => localStorage.getItem('medtrack_pref_audio_alerts') === 'true');
   const [tablePageSize, setTablePageSize] = useState(() => localStorage.getItem('medtrack_pref_page_size') || '10');
   const [highContrastMap, setHighContrastMap] = useState(() => localStorage.getItem('medtrack_pref_high_contrast') === 'true');
@@ -171,6 +173,9 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Administrator Facility & Architectural Management Console */}
+      {isAdmin && <FacilityManagement />}
 
       {/* Local Client Preferences */}
       <form onSubmit={handleSavePreferences} className="stitch-card p-4">

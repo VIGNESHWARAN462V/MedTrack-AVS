@@ -1,5 +1,6 @@
 package com.medtrack.avs.controller;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -16,6 +17,16 @@ class HealthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private com.medtrack.avs.security.RateLimiterService rateLimiterService;
+
+    @BeforeEach
+    void setUp() {
+        if (rateLimiterService != null) {
+            rateLimiterService.reset();
+        }
+    }
 
     @Test
     void healthEndpointShouldReturnStatusUp() throws Exception {

@@ -201,6 +201,27 @@ class TrackingSocketService {
   }
 
   /**
+   * Subscribe to global indoor asset tracking updates: /topic/tracking/indoor
+   */
+  subscribeToIndoorTracking(callback) {
+    return this.subscribe('/topic/tracking/indoor', callback);
+  }
+
+  /**
+   * Subscribe to a specific floor's indoor asset tracking updates: /topic/tracking/indoor/floors/{floorId}
+   */
+  subscribeToFloorIndoorTracking(floorId, callback) {
+    return this.subscribe(`/topic/tracking/indoor/floors/${floorId}`, callback);
+  }
+
+  /**
+   * Subscribe to a specific asset's indoor tracking updates: /topic/tracking/indoor/assets/{assetId}
+   */
+  subscribeToAssetIndoorTracking(assetId, callback) {
+    return this.subscribe(`/topic/tracking/indoor/assets/${assetId}`, callback);
+  }
+
+  /**
    * Generic STOMP subscription helper supporting multiple listeners per topic.
    */
   subscribe(topic, callback) {
