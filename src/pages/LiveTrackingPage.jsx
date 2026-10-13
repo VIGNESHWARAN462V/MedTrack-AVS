@@ -1001,9 +1001,6 @@ export default function LiveTrackingPage() {
                 ? 'Indoor Asset Positioning & Room Telemetry'
                 : 'Hospital Campus Outdoor Map & Geofencing'}
             </h1>
-            <span className="badge bg-primary text-white px-2 py-1" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
-              {trackingMode === 'INDOOR' ? 'Phase 6 Indoor Positioning' : 'Phase 4 Campus Map'}
-            </span>
           </div>
           <p className="text-muted mb-0 small mt-1">
             {trackingMode === 'INDOOR'
@@ -1889,7 +1886,7 @@ export default function LiveTrackingPage() {
           {/* ============================================================== */}
           {/* Asset Directory (Universal)                                   */}
           {/* ============================================================== */}
-          <div className="card border-0 shadow-sm rounded-3 bg-white flex-grow-1">
+          <div className="card border-0 shadow-sm rounded-3 bg-white">
             <div className="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
               <span className="fw-semibold small text-dark">Hospital Assets Directory ({filteredAssets.length})</span>
               <span className="badge bg-light text-muted border" style={{ fontSize: '0.7rem' }}>
@@ -1929,7 +1926,7 @@ export default function LiveTrackingPage() {
               </div>
             </div>
 
-            <div className="list-group list-group-flush overflow-auto" style={{ maxHeight: '480px' }}>
+            <div className="list-group list-group-flush overflow-auto" style={{ maxHeight: selectedAsset ? '260px' : '476px' }}>
               {loading ? (
                 <div className="p-3 text-center text-muted small">Loading asset telemetry...</div>
               ) : filteredAssets.length === 0 ? (
