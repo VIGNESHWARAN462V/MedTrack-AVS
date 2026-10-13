@@ -6,6 +6,8 @@
 User-agent: *
 Allow: /
 Allow: /about
+Allow: /login
+Allow: /register
 Disallow: /dashboard
 Disallow: /assets
 Disallow: /live-tracking
@@ -16,8 +18,6 @@ Disallow: /alerts
 Disallow: /settings
 Disallow: /ai-assistant
 Disallow: /auth/
-Disallow: /login
-Disallow: /register
 Disallow: /api/
 
 Sitemap: https://med-track-avs.vercel.app/sitemap.xml

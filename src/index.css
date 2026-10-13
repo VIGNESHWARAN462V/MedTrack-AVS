@@ -577,24 +577,25 @@ select:focus-visible {
   justify-content: center !important;
 }
 
-/* Scanner laser animation */
+/* Scanner laser animation - GPU composited */
 @keyframes scanLaser {
   0% {
-    top: 6%;
+    transform: translateY(16px);
     opacity: 0.7;
   }
   50% {
-    top: 90%;
+    transform: translateY(220px);
     opacity: 1;
   }
   100% {
-    top: 6%;
+    transform: translateY(16px);
     opacity: 0.7;
   }
 }
 
 .scanner-laser {
   position: absolute;
+  top: 0;
   left: 8px;
   right: 8px;
   height: 2px;
@@ -603,6 +604,7 @@ select:focus-visible {
   border-radius: 1px;
   animation: scanLaser 2.4s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform, opacity;
 }
 
 @keyframes pulseDot {

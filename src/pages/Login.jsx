@@ -45,23 +45,28 @@ export default function Login() {
   };
 
   return (
-    <div className="min-vh-100 d-flex flex-column justify-content-center align-items-center py-5 px-3" style={{ backgroundColor: 'var(--surface)' }}>
-      <SEO title="Sign In | MedTrack – AVS" description="Sign in to MedTrack – AVS Hospital Asset Tracking Console." noindex={true} />
+    <main className="min-vh-100 d-flex flex-column justify-content-center align-items-center py-5 px-3" style={{ backgroundColor: 'var(--surface)' }}>
+      <SEO
+        title="Sign In | MedTrack – AVS"
+        description="Sign in to MedTrack – AVS Hospital Asset Tracking Console."
+        canonicalPath="/login"
+        noindex={false}
+      />
       {/* Brand Header */}
       <div className="text-center mb-4">
         <div className="d-inline-flex align-items-center justify-content-center p-3 rounded-4 shadow-sm mb-3" style={{ backgroundColor: 'var(--surface-container-lowest)', border: '1px solid var(--surface-variant)' }}>
           <img src="/medtrack-logo.svg" alt="MedTrack Logo" width="48" height="48" />
         </div>
-        <h2 className="fw-bold mb-1" style={{ color: 'var(--primary)', letterSpacing: '-0.02em' }}>
+        <h1 className="h2 fw-bold mb-1" style={{ color: 'var(--primary)', letterSpacing: '-0.02em' }}>
           MedTrack <span style={{ color: 'var(--secondary)' }}>– AVS</span>
-        </h2>
+        </h1>
         <p className="text-muted small mb-0">Hospital Asset Tracking & Geolocation Console</p>
       </div>
 
       {/* Login Card */}
       <div className="stitch-card p-4 p-sm-5 w-100 shadow-sm" style={{ maxWidth: '440px' }}>
         <div className="mb-4 text-center">
-          <h4 className="fw-bold mb-1">Sign In</h4>
+          <h2 className="h4 fw-bold mb-1">Sign In</h2>
           <p className="text-muted small">Enter your hospital credentials to access the console</p>
         </div>
 
@@ -154,6 +159,6 @@ export default function Login() {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

@@ -31,7 +31,7 @@
     <!-- Non-render-blocking Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" media="print" data-fonts-css="true">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" media="print" onload="this.media='all'">
     <noscript>
       <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap">
     </noscript>
@@ -203,19 +203,6 @@
         if (p && p !== '/' && p !== '/index.html') {
           var s = document.getElementById('initial-shell');
           if (s) s.remove();
-        }
-
-        function activateStyles() {
-          var f = document.querySelector('link[data-fonts-css]');
-          if (f && f.media !== 'all') f.media = 'all';
-          var a = document.querySelector('link[data-app-css]');
-          if (a && a.media !== 'all') a.media = 'all';
-        }
-
-        if ('requestIdleCallback' in window) {
-          window.requestIdleCallback(activateStyles, { timeout: 3000 });
-        } else {
-          setTimeout(activateStyles, 2500);
         }
       })();
     </script>

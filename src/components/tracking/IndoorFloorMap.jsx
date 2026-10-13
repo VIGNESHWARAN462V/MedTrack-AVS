@@ -637,22 +637,16 @@ export default function IndoorFloorMap({
                   <feDropShadow dx="0" dy="3" stdDeviation="3" floodColor="#000000" floodOpacity="0.35" />
                 </filter>
 
-                {/* Pulse wave animation styles */}
+                {/* Target reticle animation style */}
                 <style>{`
-                  @keyframes indoorRadarWave {
-                    0% { r: 10px; opacity: 0.9; }
-                    100% { r: 24px; opacity: 0; }
-                  }
-                  .indoor-radar-pulse {
-                    animation: indoorRadarWave 2s cubic-bezier(0.2, 0.8, 0.2, 1) infinite;
-                    pointer-events: none;
-                  }
                   @keyframes targetReticle {
                     0%, 100% { transform: scale(1); }
                     50% { transform: scale(1.15); }
                   }
                   .target-reticle {
+                    transform-origin: center;
                     animation: targetReticle 1.5s ease-in-out infinite;
+                    will-change: transform;
                   }
                 `}</style>
               </defs>

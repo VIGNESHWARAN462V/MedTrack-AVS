@@ -4,12 +4,57 @@ import SEO from '../components/common/SEO';
 
 export default function AboutPage() {
   return (
-    <div className="d-flex flex-column gap-4" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="min-vh-100 d-flex flex-column" style={{ backgroundColor: 'var(--surface)', color: 'var(--on-surface)' }}>
       <SEO
         title="About MedTrack – AVS | Medical Equipment Geolocation & Tracking Specifications"
         description="Comprehensive architecture and engineering specifications for MedTrack – AVS: BLE beacon nodes, sub-meter geolocation, physical QR identification, and clinical friction metrics."
         canonicalPath="/about"
       />
+      {/* Public Navigation Bar */}
+      <header className="app-header d-flex align-items-center justify-content-between px-3 px-lg-5">
+        <div className="d-flex align-items-center gap-2">
+          <Link to="/" className="d-flex align-items-center gap-2 text-decoration-none">
+            <img
+              src="/medtrack-logo.svg"
+              alt="MedTrack Logo"
+              width="34"
+              height="34"
+              className="rounded-2"
+            />
+            <span className="fs-5 fw-bold" style={{ color: 'var(--primary)', letterSpacing: '-0.02em' }}>
+              MedTrack <span style={{ color: 'var(--secondary)' }}>– AVS</span>
+            </span>
+          </Link>
+        </div>
+
+        <nav className="d-none d-md-flex align-items-center gap-4">
+          <Link to="/" className="text-decoration-none text-muted fw-semibold">
+            Home
+          </Link>
+          <Link to="/about" className="text-decoration-none fw-bold" style={{ color: 'var(--primary)' }}>
+            About Project
+          </Link>
+          <Link to="/login" className="text-decoration-none text-muted fw-semibold">
+            Login
+          </Link>
+          <Link to="/register" className="text-decoration-none text-muted fw-semibold">
+            Register
+          </Link>
+        </nav>
+
+        <div className="d-flex align-items-center gap-2">
+          <Link to="/login" className="btn btn-sm btn-outline-primary d-none d-sm-inline-flex px-3 py-1 rounded-2 fw-semibold" style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}>
+            Sign In
+          </Link>
+          <Link to="/dashboard" className="btn btn-sm btn-stitch-primary px-3 py-1 rounded-2">
+            Enter Dashboard
+          </Link>
+        </div>
+      </header>
+
+      {/* Main Content Landmark */}
+      <main className="flex-grow-1 py-5 px-3 px-md-5" style={{ paddingTop: '80px' }}>
+        <div className="d-flex flex-column gap-4" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       {/* Header Banner */}
       <div
         className="stitch-card p-4 p-md-5 text-white position-relative overflow-hidden shadow-md"
@@ -134,5 +179,7 @@ export default function AboutPage() {
         </div>
       </div>
     </div>
-  );
+  </main>
+</div>
+);
 }
