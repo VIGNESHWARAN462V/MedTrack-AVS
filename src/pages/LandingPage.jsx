@@ -191,8 +191,6 @@ export default function LandingPage() {
           className="py-5 px-3 px-md-5"
           style={{
             backgroundColor: 'var(--surface-container-low)',
-            contentVisibility: 'auto',
-            containIntrinsicSize: '0 240px',
           }}
         >
           <div className="container-xl">
@@ -246,13 +244,7 @@ export default function LandingPage() {
         </section>
 
         {/* Core Advantages */}
-        <section
-          className="py-5 px-3 px-md-5"
-          style={{
-            contentVisibility: 'auto',
-            containIntrinsicSize: '0 450px',
-          }}
-        >
+        <section className="py-5 px-3 px-md-5">
           <div className="container-xl py-4">
             <div className="text-center max-w-2xl mx-auto mb-5">
               <span className="small text-uppercase fw-semibold" style={{ color: 'var(--primary)', letterSpacing: '0.08em' }}>
@@ -309,8 +301,6 @@ export default function LandingPage() {
           className="py-5 px-3 px-md-5"
           style={{
             backgroundColor: 'var(--surface-container-low)',
-            contentVisibility: 'auto',
-            containIntrinsicSize: '0 320px',
           }}
         >
           <div className="container-xl py-4">
@@ -343,13 +333,7 @@ export default function LandingPage() {
         </section>
 
         {/* 3 Signature Metrics Preview */}
-        <section
-          className="py-5 px-3 px-md-5"
-          style={{
-            contentVisibility: 'auto',
-            containIntrinsicSize: '0 450px',
-          }}
-        >
+        <section className="py-5 px-3 px-md-5">
           <div className="container-xl py-4">
             <div className="text-center mb-5">
               <span className="small text-uppercase fw-semibold" style={{ color: 'var(--primary)', letterSpacing: '0.08em' }}>
@@ -416,8 +400,6 @@ export default function LandingPage() {
           className="py-5 px-3 px-md-5 text-center"
           style={{
             background: 'linear-gradient(135deg, rgba(15, 118, 110, 0.12) 0%, rgba(0, 107, 95, 0.12) 100%)',
-            contentVisibility: 'auto',
-            containIntrinsicSize: '0 300px',
           }}
         >
           <div className="container-xl py-4" style={{ maxWidth: '720px' }}>
@@ -451,8 +433,6 @@ export default function LandingPage() {
           backgroundColor: 'var(--surface-container-low)',
           fontSize: '0.85rem',
           color: 'var(--outline)',
-          contentVisibility: 'auto',
-          containIntrinsicSize: '0 80px',
         }}
       >
         <div className="container-xl">

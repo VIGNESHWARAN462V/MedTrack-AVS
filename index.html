@@ -136,6 +136,18 @@
       .container-xl { width: 100%; padding-right: 0.75rem; padding-left: 0.75rem; margin-right: auto; margin-left: auto; max-width: 1320px; }
       .row { display: flex; flex-wrap: wrap; margin-right: -0.75rem; margin-left: -0.75rem; }
       .col-12 { flex: 0 0 auto; width: 100%; padding-right: 0.75rem; padding-left: 0.75rem; }
+      .stitch-card {
+        background-color: #ffffff;
+        border-radius: 12px;
+        border: 1px solid rgba(224, 227, 229, 0.6);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+        width: 100%;
+      }
+      .col-6 { flex: 0 0 auto; width: 50%; padding-right: 0.5rem; padding-left: 0.5rem; }
+      .g-2 { margin-right: -0.5rem; margin-left: -0.5rem; }
+      .p-3 { padding: 1rem; }
+      .p-4 { padding: 1.5rem; }
+      .rounded-3 { border-radius: 0.5rem; }
       @media (min-width: 992px) {
         .col-lg-6 { flex: 0 0 auto; width: 50%; padding-right: 0.75rem; padding-left: 0.75rem; }
         .px-lg-5 { padding-left: 3rem; padding-right: 3rem; }
@@ -190,6 +202,33 @@
                 <div class="d-flex flex-wrap gap-3">
                   <a href="/register" class="btn btn-stitch-primary px-4 py-2 fs-6">Get Started</a>
                   <a href="/dashboard" class="btn btn-stitch-secondary px-4 py-2 fs-6">Explore Dashboard</a>
+                </div>
+              </div>
+
+              <!-- Matching Hero Visual Shell for Layout Stability -->
+              <div class="col-12 col-lg-6">
+                <div class="stitch-card p-4">
+                  <div class="d-flex align-items-center justify-content-between mb-3">
+                    <span class="fw-bold" style="font-size: 1.05rem;">Live Hospital Floor Plan</span>
+                    <span class="rounded-pill px-3 py-1" style="background-color: rgba(15, 118, 110, 0.12); color: var(--primary); font-size: 0.75rem; font-weight: 600;">
+                      Floor 3 – Emergency
+                    </span>
+                  </div>
+                  <div class="position-relative mb-3" style="height: 260px; border-radius: 12px; background-color: #0b1a20;"></div>
+                  <div class="row g-2">
+                    <div class="col-6">
+                      <div class="p-3 rounded-3" style="background-color: #f1f4f6;">
+                        <div class="small text-muted mb-1" style="font-size: 0.8rem;">ECG-023 Status</div>
+                        <div class="fw-bold small">Moving • 4s ago</div>
+                      </div>
+                    </div>
+                    <div class="col-6">
+                      <div class="p-3 rounded-3" style="background-color: #f1f4f6;">
+                        <div class="small text-muted mb-1" style="font-size: 0.8rem;">Total Fleet</div>
+                        <div class="fw-bold small">42 Assets Online</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
