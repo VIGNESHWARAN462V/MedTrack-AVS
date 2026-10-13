@@ -24,6 +24,7 @@ public class RateLimiterService {
         QR_LOOKUP(20.0, 60.0 / 60.0),             // 60 requests / min (1.0/s)
         TRANSFER_MUTATION(15.0, 30.0 / 60.0),     // 30 requests / min (0.5/s)
         AI_CHAT(12.0, 20.0 / 60.0),               // 20 requests / min (upstream cost & abuse protection)
+        HEALTH_CHECK(10.0, 60.0 / 60.0),          // 60 requests / min (1.0/s, isolated uptime monitoring)
         DEFAULT_API(40.0, 120.0 / 60.0);          // 120 requests / min fallback
 
         @Getter
@@ -118,6 +119,9 @@ public class RateLimiterService {
                 return Policy.TRANSFER_MUTATION;
             }
         } else if ("GET".equalsIgnoreCase(method)) {
+            if ("/api/health".equalsIgnoreCase(uri)) {
+                return Policy.HEALTH_CHECK;
+            }
             if (uri != null && uri.startsWith("/api/assets/qr/")) {
                 return Policy.QR_LOOKUP;
             }
