@@ -7,8 +7,8 @@ const MainLayout = lazy(() => import('./layouts/MainLayout'));
 
 // Public pages (Lightweight initial bundle)
 import LandingPage from './pages/LandingPage';
+import Login from './pages/Login';
 const AboutPage = lazy(() => import('./pages/AboutPage'));
-const Login = lazy(() => import('./pages/Login'));
 const Register = lazy(() => import('./pages/Register'));
 const AuthCallback = lazy(() => import('./pages/AuthCallback'));
 
