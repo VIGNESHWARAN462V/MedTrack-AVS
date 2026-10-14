@@ -130,12 +130,20 @@ export default function AiAssistantPage() {
           userFacingError = message || 'Access denied: You do not have permission to view the requested data under your current role.';
           isRetryable = false;
         } else if (status === 429) {
-          userFacingError = 'Too many requests. Please pause for a moment before submitting your next question.';
+          userFacingError = message || 'AI provider rate limit exceeded. Please pause for a moment before submitting your next question.';
+          isRetryable = true;
+        } else if (status === 502 || errCode === 'AI_MODEL_UNAVAILABLE') {
+          userFacingError = message || 'The configured AI model is temporarily unavailable. Please retry.';
+          isRetryable = true;
         } else if (status === 503 && errCode === 'AI_NOT_CONFIGURED') {
           userFacingError = 'The AI Operations Assistant is currently unconfigured. The server administrator must configure AI_PROVIDER and AI_API_KEY.';
           isRetryable = false;
+        } else if (status === 503) {
+          userFacingError = message || 'The AI provider is currently experiencing high demand. Please try again momentarily.';
+          isRetryable = true;
         } else if (status === 504 || errCode === 'AI_PROVIDER_TIMEOUT') {
           userFacingError = 'The AI provider timed out while analyzing hospital records. Please retry.';
+          isRetryable = true;
         } else if (message) {
           userFacingError = message;
         }

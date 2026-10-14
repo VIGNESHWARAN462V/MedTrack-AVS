@@ -177,163 +177,406 @@ public class AiServiceImpl implements AiService {
         String baseUrl = StringUtils.hasText(aiProperties.getApiBaseUrl())
                 ? aiProperties.getApiBaseUrl().replaceAll("/+$", "")
                 : "https://generativelanguage.googleapis.com/v1beta";
-        String model = StringUtils.hasText(aiProperties.getModel())
-                ? aiProperties.getModel().trim()
-                : "gemini-3.8-flash";
 
-        String uri = baseUrl + "/models/" + model + ":generateContent";
+        List<String> models = aiProperties.getCandidateModels();
+        AiProviderException lastException = null;
 
-        Map<String, Object> payload;
-        if (model.toLowerCase().contains("gemini-3")) {
-            payload = Map.of(
-                    "contents", List.of(
-                            Map.of("parts", List.of(
-                                    Map.of("text", prompt)
-                            ))
-                    ),
-                    "generationConfig", Map.of(
-                            "thinkingConfig", Map.of(
-                                    "thinkingLevel", "LOW"
-                            )
-                    )
-            );
-        } else {
-            payload = Map.of(
-                    "contents", List.of(
-                            Map.of("parts", List.of(
-                                    Map.of("text", prompt)
-                            ))
-                    )
-            );
+        for (int m = 0; m < models.size(); m++) {
+            String model = models.get(m);
+            String uri = baseUrl + "/models/" + model + ":generateContent";
+            Map<String, Object> payload = buildGeminiPayload(model, prompt);
+            int maxRetries = Math.max(0, aiProperties.getMaxRetries());
+
+            for (int attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> response = restClient.post()
+                            .uri(uri)
+                            .header("x-goog-api-key", aiProperties.getApiKey())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .retrieve()
+                            .body(Map.class);
+
+                    String answer = extractGeminiAnswer(response);
+                    if (!StringUtils.hasText(answer)) {
+                        answer = toolResult.getGroundedSummary();
+                    }
+
+                    if (m > 0) {
+                        log.info("[AI] Grounded query answered successfully using fallback model: {}", model);
+                    }
+
+                    return AiChatResponse.builder()
+                            .answer(answer)
+                            .provider("GEMINI")
+                            .model(model)
+                            .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
+                            .sources(toolResult.getSources())
+                            .dataAsOf(toolResult.getDataAsOf())
+                            .cached(false)
+                            .build();
+
+                } catch (ResourceAccessException ex) {
+                    log.error("[AI] Gemini request timed out or network error occurred for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_TIMEOUT",
+                            HttpStatus.GATEWAY_TIMEOUT,
+                            "AI provider timed out while waiting for a response."
+                    );
+                    break;
+                } catch (RestClientResponseException ex) {
+                    int statusCode = ex.getStatusCode().value();
+                    boolean isTransient = (statusCode == 503 || statusCode == 429);
+                    if (isTransient && attempt < maxRetries) {
+                        long backoff = calculateBackoff(attempt, aiProperties.getRetryBackoffMs());
+                        log.warn("[AI] Gemini model {} returned HTTP {}. Retrying in {}ms (attempt {}/{})",
+                                model, statusCode, backoff, attempt + 1, maxRetries);
+                        sleepQuietly(backoff);
+                        continue;
+                    }
+                    lastException = translateRestClientResponseException(ex, model);
+                    if (m < models.size() - 1 && (statusCode == 503 || statusCode == 429 || statusCode == 404)) {
+                        log.warn("[AI] Gemini model {} unavailable (HTTP {}). Attempting fallback model: {}",
+                                model, statusCode, models.get(m + 1));
+                        break;
+                    } else {
+                        throw lastException;
+                    }
+                } catch (Exception ex) {
+                    if (isTimeout(ex)) {
+                        log.error("[AI] Gemini request timed out for model: {}", model, ex);
+                        lastException = new AiProviderException(
+                                "AI_PROVIDER_TIMEOUT",
+                                HttpStatus.GATEWAY_TIMEOUT,
+                                "AI provider timed out while waiting for a response."
+                        );
+                        break;
+                    }
+                    log.error("[AI] Unexpected error during Gemini request for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_ERROR",
+                            HttpStatus.SERVICE_UNAVAILABLE,
+                            "An unexpected error occurred while communicating with the AI provider."
+                    );
+                    break;
+                }
+            }
         }
 
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
-                    .uri(uri)
-                    .header("x-goog-api-key", aiProperties.getApiKey())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(payload)
-                    .retrieve()
-                    .body(Map.class);
-
-            String answer = extractGeminiAnswer(response);
-            if (!StringUtils.hasText(answer)) {
-                answer = toolResult.getGroundedSummary();
-            }
-
-            return AiChatResponse.builder()
-                    .answer(answer)
-                    .provider("GEMINI")
-                    .model(model)
-                    .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
-                    .sources(toolResult.getSources())
-                    .dataAsOf(toolResult.getDataAsOf())
-                    .cached(false)
-                    .build();
-        } catch (ResourceAccessException ex) {
-            log.error("[AI] Gemini request timed out or network error occurred for model: {}", model, ex);
-            throw new AiProviderException(
-                    "AI_PROVIDER_TIMEOUT",
-                    HttpStatus.GATEWAY_TIMEOUT,
-                    "AI provider timed out while waiting for a response."
-            );
-        } catch (RestClientResponseException ex) {
-            throw translateRestClientResponseException(ex, model);
-        } catch (Exception ex) {
-            if (isTimeout(ex)) {
-                log.error("[AI] Gemini request timed out for model: {}", model, ex);
-                throw new AiProviderException(
-                        "AI_PROVIDER_TIMEOUT",
-                        HttpStatus.GATEWAY_TIMEOUT,
-                        "AI provider timed out while waiting for a response."
-                );
-            }
-            log.error("[AI] Unexpected error during Gemini request for model: {}", model, ex);
-            throw new AiProviderException(
-                    "AI_PROVIDER_ERROR",
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "An unexpected error occurred while communicating with the AI provider."
-            );
+        if (lastException != null) {
+            throw lastException;
         }
+
+        throw new AiProviderException(
+                "AI_PROVIDER_UNAVAILABLE",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "AI provider is currently experiencing high demand. Please try again momentarily."
+        );
     }
 
     private AiChatResponse callOpenAiGrounded(String prompt, AiToolExecutionResult toolResult) {
         String baseUrl = StringUtils.hasText(aiProperties.getApiBaseUrl())
                 ? aiProperties.getApiBaseUrl().replaceAll("/+$", "")
                 : "https://api.openai.com/v1";
-        String model = StringUtils.hasText(aiProperties.getModel())
-                ? aiProperties.getModel().trim()
-                : "gpt-4o-mini";
 
-        String uri = baseUrl + "/chat/completions";
+        List<String> models = aiProperties.getCandidateModels();
+        AiProviderException lastException = null;
 
-        Map<String, Object> payload = Map.of(
-                "model", model,
-                "messages", List.of(
-                        Map.of("role", "user", "content", prompt)
-                )
-        );
+        for (int m = 0; m < models.size(); m++) {
+            String model = models.get(m);
+            String uri = baseUrl + "/chat/completions";
+            Map<String, Object> payload = Map.of(
+                    "model", model,
+                    "messages", List.of(
+                            Map.of("role", "user", "content", prompt)
+                    )
+            );
+            int maxRetries = Math.max(0, aiProperties.getMaxRetries());
 
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
-                    .uri(uri)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + aiProperties.getApiKey())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(payload)
-                    .retrieve()
-                    .body(Map.class);
+            for (int attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> response = restClient.post()
+                            .uri(uri)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + aiProperties.getApiKey())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .retrieve()
+                            .body(Map.class);
 
-            String answer = extractOpenAiAnswer(response);
-            if (!StringUtils.hasText(answer)) {
-                answer = toolResult.getGroundedSummary();
+                    String answer = extractOpenAiAnswer(response);
+                    if (!StringUtils.hasText(answer)) {
+                        answer = toolResult.getGroundedSummary();
+                    }
+
+                    if (m > 0) {
+                        log.info("[AI] Grounded query answered successfully using fallback OpenAI model: {}", model);
+                    }
+
+                    return AiChatResponse.builder()
+                            .answer(answer)
+                            .provider("OPENAI")
+                            .model(model)
+                            .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
+                            .sources(toolResult.getSources())
+                            .dataAsOf(toolResult.getDataAsOf())
+                            .cached(false)
+                            .build();
+
+                } catch (ResourceAccessException ex) {
+                    log.error("[AI] OpenAI request timed out or network error occurred for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_TIMEOUT",
+                            HttpStatus.GATEWAY_TIMEOUT,
+                            "AI provider timed out while waiting for a response."
+                    );
+                    break;
+                } catch (RestClientResponseException ex) {
+                    int statusCode = ex.getStatusCode().value();
+                    boolean isTransient = (statusCode == 503 || statusCode == 429);
+                    if (isTransient && attempt < maxRetries) {
+                        long backoff = calculateBackoff(attempt, aiProperties.getRetryBackoffMs());
+                        log.warn("[AI] OpenAI model {} returned HTTP {}. Retrying in {}ms (attempt {}/{})",
+                                model, statusCode, backoff, attempt + 1, maxRetries);
+                        sleepQuietly(backoff);
+                        continue;
+                    }
+                    lastException = translateRestClientResponseException(ex, model);
+                    if (m < models.size() - 1 && (statusCode == 503 || statusCode == 429 || statusCode == 404)) {
+                        log.warn("[AI] OpenAI model {} unavailable (HTTP {}). Attempting fallback model: {}",
+                                model, statusCode, models.get(m + 1));
+                        break;
+                    } else {
+                        throw lastException;
+                    }
+                } catch (Exception ex) {
+                    if (isTimeout(ex)) {
+                        log.error("[AI] OpenAI request timed out for model: {}", model, ex);
+                        lastException = new AiProviderException(
+                                "AI_PROVIDER_TIMEOUT",
+                                HttpStatus.GATEWAY_TIMEOUT,
+                                "AI provider timed out while waiting for a response."
+                        );
+                        break;
+                    }
+                    log.error("[AI] Unexpected error during OpenAI request for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_ERROR",
+                            HttpStatus.SERVICE_UNAVAILABLE,
+                            "An unexpected error occurred while communicating with the AI provider."
+                    );
+                    break;
+                }
             }
-
-            return AiChatResponse.builder()
-                    .answer(answer)
-                    .provider("OPENAI")
-                    .model(model)
-                    .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
-                    .sources(toolResult.getSources())
-                    .dataAsOf(toolResult.getDataAsOf())
-                    .cached(false)
-                    .build();
-        } catch (ResourceAccessException ex) {
-            log.error("[AI] OpenAI request timed out or network error occurred for model: {}", model);
-            throw new AiProviderException(
-                    "AI_PROVIDER_TIMEOUT",
-                    HttpStatus.GATEWAY_TIMEOUT,
-                    "AI provider timed out while waiting for a response."
-            );
-        } catch (RestClientResponseException ex) {
-            throw translateRestClientResponseException(ex, model);
-        } catch (Exception ex) {
-            log.error("[AI] Unexpected error during OpenAI request for model: {}", model);
-            throw new AiProviderException(
-                    "AI_PROVIDER_ERROR",
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "An unexpected error occurred while communicating with the AI provider."
-            );
         }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+
+        throw new AiProviderException(
+                "AI_PROVIDER_UNAVAILABLE",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "AI provider is currently experiencing high demand. Please try again momentarily."
+        );
     }
 
     private AiChatResponse callGemini(String question) {
         String baseUrl = StringUtils.hasText(aiProperties.getApiBaseUrl())
                 ? aiProperties.getApiBaseUrl().replaceAll("/+$", "")
                 : "https://generativelanguage.googleapis.com/v1beta";
-        String model = StringUtils.hasText(aiProperties.getModel())
-                ? aiProperties.getModel().trim()
-                : "gemini-3.8-flash";
 
-        String uri = baseUrl + "/models/" + model + ":generateContent";
+        List<String> models = aiProperties.getCandidateModels();
+        AiProviderException lastException = null;
 
-        Map<String, Object> payload;
+        for (int m = 0; m < models.size(); m++) {
+            String model = models.get(m);
+            String uri = baseUrl + "/models/" + model + ":generateContent";
+            Map<String, Object> payload = buildGeminiPayload(model, question);
+            int maxRetries = Math.max(0, aiProperties.getMaxRetries());
+
+            for (int attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> response = restClient.post()
+                            .uri(uri)
+                            .header("x-goog-api-key", aiProperties.getApiKey())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .retrieve()
+                            .body(Map.class);
+
+                    String answer = extractGeminiAnswer(response);
+                    return AiChatResponse.builder()
+                            .answer(answer)
+                            .provider("GEMINI")
+                            .model(model)
+                            .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
+                            .cached(false)
+                            .build();
+
+                } catch (ResourceAccessException ex) {
+                    log.error("[AI] Gemini request timed out or network error occurred for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_TIMEOUT",
+                            HttpStatus.GATEWAY_TIMEOUT,
+                            "AI provider timed out while waiting for a response."
+                    );
+                    break;
+                } catch (RestClientResponseException ex) {
+                    int statusCode = ex.getStatusCode().value();
+                    boolean isTransient = (statusCode == 503 || statusCode == 429);
+                    if (isTransient && attempt < maxRetries) {
+                        long backoff = calculateBackoff(attempt, aiProperties.getRetryBackoffMs());
+                        log.warn("[AI] Gemini model {} returned HTTP {}. Retrying in {}ms (attempt {}/{})",
+                                model, statusCode, backoff, attempt + 1, maxRetries);
+                        sleepQuietly(backoff);
+                        continue;
+                    }
+                    lastException = translateRestClientResponseException(ex, model);
+                    if (m < models.size() - 1 && (statusCode == 503 || statusCode == 429 || statusCode == 404)) {
+                        log.warn("[AI] Gemini model {} unavailable (HTTP {}). Attempting fallback model: {}",
+                                model, statusCode, models.get(m + 1));
+                        break;
+                    } else {
+                        throw lastException;
+                    }
+                } catch (Exception ex) {
+                    if (isTimeout(ex)) {
+                        log.error("[AI] Gemini request timed out for model: {}", model, ex);
+                        lastException = new AiProviderException(
+                                "AI_PROVIDER_TIMEOUT",
+                                HttpStatus.GATEWAY_TIMEOUT,
+                                "AI provider timed out while waiting for a response."
+                        );
+                        break;
+                    }
+                    log.error("[AI] Unexpected error during Gemini request for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_ERROR",
+                            HttpStatus.SERVICE_UNAVAILABLE,
+                            "An unexpected error occurred while communicating with the AI provider."
+                    );
+                    break;
+                }
+            }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+
+        throw new AiProviderException(
+                "AI_PROVIDER_UNAVAILABLE",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "AI provider is currently experiencing high demand. Please try again momentarily."
+        );
+    }
+
+    private AiChatResponse callOpenAi(String question) {
+        String baseUrl = StringUtils.hasText(aiProperties.getApiBaseUrl())
+                ? aiProperties.getApiBaseUrl().replaceAll("/+$", "")
+                : "https://api.openai.com/v1";
+
+        List<String> models = aiProperties.getCandidateModels();
+        AiProviderException lastException = null;
+
+        for (int m = 0; m < models.size(); m++) {
+            String model = models.get(m);
+            String uri = baseUrl + "/chat/completions";
+            Map<String, Object> payload = Map.of(
+                    "model", model,
+                    "messages", List.of(
+                            Map.of("role", "user", "content", question)
+                    )
+            );
+            int maxRetries = Math.max(0, aiProperties.getMaxRetries());
+
+            for (int attempt = 0; attempt <= maxRetries; attempt++) {
+                try {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> response = restClient.post()
+                            .uri(uri)
+                            .header(HttpHeaders.AUTHORIZATION, "Bearer " + aiProperties.getApiKey())
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(payload)
+                            .retrieve()
+                            .body(Map.class);
+
+                    String answer = extractOpenAiAnswer(response);
+                    return AiChatResponse.builder()
+                            .answer(answer)
+                            .provider("OPENAI")
+                            .model(model)
+                            .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
+                            .cached(false)
+                            .build();
+
+                } catch (ResourceAccessException ex) {
+                    log.error("[AI] OpenAI request timed out or network error occurred for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_TIMEOUT",
+                            HttpStatus.GATEWAY_TIMEOUT,
+                            "AI provider timed out while waiting for a response."
+                    );
+                    break;
+                } catch (RestClientResponseException ex) {
+                    int statusCode = ex.getStatusCode().value();
+                    boolean isTransient = (statusCode == 503 || statusCode == 429);
+                    if (isTransient && attempt < maxRetries) {
+                        long backoff = calculateBackoff(attempt, aiProperties.getRetryBackoffMs());
+                        log.warn("[AI] OpenAI model {} returned HTTP {}. Retrying in {}ms (attempt {}/{})",
+                                model, statusCode, backoff, attempt + 1, maxRetries);
+                        sleepQuietly(backoff);
+                        continue;
+                    }
+                    lastException = translateRestClientResponseException(ex, model);
+                    if (m < models.size() - 1 && (statusCode == 503 || statusCode == 429 || statusCode == 404)) {
+                        log.warn("[AI] OpenAI model {} unavailable (HTTP {}). Attempting fallback model: {}",
+                                model, statusCode, models.get(m + 1));
+                        break;
+                    } else {
+                        throw lastException;
+                    }
+                } catch (Exception ex) {
+                    if (isTimeout(ex)) {
+                        log.error("[AI] OpenAI request timed out for model: {}", model, ex);
+                        lastException = new AiProviderException(
+                                "AI_PROVIDER_TIMEOUT",
+                                HttpStatus.GATEWAY_TIMEOUT,
+                                "AI provider timed out while waiting for a response."
+                        );
+                        break;
+                    }
+                    log.error("[AI] Unexpected error during OpenAI request for model: {}", model, ex);
+                    lastException = new AiProviderException(
+                            "AI_PROVIDER_ERROR",
+                            HttpStatus.SERVICE_UNAVAILABLE,
+                            "An unexpected error occurred while communicating with the AI provider."
+                    );
+                    break;
+                }
+            }
+        }
+
+        if (lastException != null) {
+            throw lastException;
+        }
+
+        throw new AiProviderException(
+                "AI_PROVIDER_UNAVAILABLE",
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "AI provider is currently experiencing high demand. Please try again momentarily."
+        );
+    }
+
+    private Map<String, Object> buildGeminiPayload(String model, String text) {
         if (model.toLowerCase().contains("gemini-3")) {
-            payload = Map.of(
+            return Map.of(
                     "contents", List.of(
                             Map.of("parts", List.of(
-                                    Map.of("text", question)
+                                    Map.of("text", text)
                             ))
                     ),
                     "generationConfig", Map.of(
@@ -343,119 +586,28 @@ public class AiServiceImpl implements AiService {
                     )
             );
         } else {
-            payload = Map.of(
+            return Map.of(
                     "contents", List.of(
                             Map.of("parts", List.of(
-                                    Map.of("text", question)
+                                    Map.of("text", text)
                             ))
                     )
             );
         }
-
-        try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
-                    .uri(uri)
-                    .header("x-goog-api-key", aiProperties.getApiKey())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(payload)
-                    .retrieve()
-                    .body(Map.class);
-
-            String answer = extractGeminiAnswer(response);
-            return AiChatResponse.builder()
-                    .answer(answer)
-                    .provider("GEMINI")
-                    .model(model)
-                    .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
-                    .cached(false)
-                    .build();
-        } catch (ResourceAccessException ex) {
-            log.error("[AI] Gemini request timed out or network error occurred for model: {}", model, ex);
-            throw new AiProviderException(
-                    "AI_PROVIDER_TIMEOUT",
-                    HttpStatus.GATEWAY_TIMEOUT,
-                    "AI provider timed out while waiting for a response."
-            );
-        } catch (RestClientResponseException ex) {
-            throw translateRestClientResponseException(ex, model);
-        } catch (Exception ex) {
-            if (isTimeout(ex)) {
-                log.error("[AI] Gemini request timed out for model: {}", model, ex);
-                throw new AiProviderException(
-                        "AI_PROVIDER_TIMEOUT",
-                        HttpStatus.GATEWAY_TIMEOUT,
-                        "AI provider timed out while waiting for a response."
-                );
-            }
-            log.error("[AI] Unexpected error during Gemini request for model: {}", model, ex);
-            throw new AiProviderException(
-                    "AI_PROVIDER_ERROR",
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "An unexpected error occurred while communicating with the AI provider."
-            );
-        }
     }
 
-    private AiChatResponse callOpenAi(String question) {
-        String baseUrl = StringUtils.hasText(aiProperties.getApiBaseUrl())
-                ? aiProperties.getApiBaseUrl().replaceAll("/+$", "")
-                : "https://api.openai.com/v1";
-        String model = StringUtils.hasText(aiProperties.getModel())
-                ? aiProperties.getModel().trim()
-                : "gpt-4o-mini";
+    private long calculateBackoff(int attempt, long initialBackoffMs) {
+        long base = initialBackoffMs <= 0 ? 500L : initialBackoffMs;
+        long backoff = base * (1L << attempt);
+        return Math.min(backoff, 2000L);
+    }
 
-        String uri = baseUrl + "/chat/completions";
-
-        Map<String, Object> payload = Map.of(
-                "model", model,
-                "messages", List.of(
-                        Map.of("role", "user", "content", question)
-                )
-        );
-
+    private void sleepQuietly(long millis) {
+        if (millis <= 0) return;
         try {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> response = restClient.post()
-                    .uri(uri)
-                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + aiProperties.getApiKey())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(payload)
-                    .retrieve()
-                    .body(Map.class);
-
-            String answer = extractOpenAiAnswer(response);
-            return AiChatResponse.builder()
-                    .answer(answer)
-                    .provider("OPENAI")
-                    .model(model)
-                    .answeredAt(Instant.now().truncatedTo(ChronoUnit.MICROS))
-                    .cached(false)
-                    .build();
-        } catch (ResourceAccessException ex) {
-            log.error("[AI] OpenAI request timed out or network error occurred for model: {}", model, ex);
-            throw new AiProviderException(
-                    "AI_PROVIDER_TIMEOUT",
-                    HttpStatus.GATEWAY_TIMEOUT,
-                    "AI provider timed out while waiting for a response."
-            );
-        } catch (RestClientResponseException ex) {
-            throw translateRestClientResponseException(ex, model);
-        } catch (Exception ex) {
-            if (isTimeout(ex)) {
-                log.error("[AI] OpenAI request timed out for model: {}", model, ex);
-                throw new AiProviderException(
-                        "AI_PROVIDER_TIMEOUT",
-                        HttpStatus.GATEWAY_TIMEOUT,
-                        "AI provider timed out while waiting for a response."
-                );
-            }
-            log.error("[AI] Unexpected error during OpenAI request for model: {}", model, ex);
-            throw new AiProviderException(
-                    "AI_PROVIDER_ERROR",
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "An unexpected error occurred while communicating with the AI provider."
-            );
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

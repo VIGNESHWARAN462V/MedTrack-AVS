@@ -212,4 +212,114 @@ class AiServiceTest {
         assertEquals("UNSUPPORTED_AI_PROVIDER", ex.getErrorCode());
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ex.getStatus());
     }
+
+    @Test
+    @DisplayName("10. Transient 503 error performs bounded retry with backoff and succeeds")
+    void testChat_transient503_retriesAndSucceeds() {
+        aiProperties.setProvider("GEMINI");
+        aiProperties.setApiKey("test-gemini-key");
+        aiProperties.setModel("gemini-3.5-flash-lite");
+        aiProperties.setMaxRetries(1);
+        aiProperties.setRetryBackoffMs(10);
+
+        String geminiJson = """
+                {
+                  "candidates": [
+                    {
+                      "content": {
+                        "parts": [
+                          { "text": "Asset ECG-001 is in Cardiology ICU." }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        // First attempt returns 503, second attempt succeeds
+        mockServer.expect(requestTo("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        mockServer.expect(requestTo("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(geminiJson, MediaType.APPLICATION_JSON));
+
+        AiChatRequest request = new AiChatRequest("Where is asset ECG-001 currently reported?");
+        AiChatResponse response = aiService.chat(request, "admin@medtrack.org");
+
+        assertNotNull(response);
+        assertEquals("Asset ECG-001 is in Cardiology ICU.", response.getAnswer());
+        assertEquals("gemini-3.5-flash-lite", response.getModel());
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("11. Overloaded primary model fails over automatically to configured fallback model")
+    void testChat_primary503_failsOverToFallbackModel() {
+        aiProperties.setProvider("GEMINI");
+        aiProperties.setApiKey("test-gemini-key");
+        aiProperties.setModel("gemini-3.8-flash");
+        aiProperties.setFallbackModels("gemini-3.5-flash-lite");
+        aiProperties.setMaxRetries(0); // Fail primary on first attempt to trigger fallback
+
+        String fallbackJson = """
+                {
+                  "candidates": [
+                    {
+                      "content": {
+                        "parts": [
+                          { "text": "Asset ECG-001 reported at Cardiology Ward from fallback model." }
+                        ]
+                      }
+                    }
+                  ]
+                }
+                """;
+
+        // Primary model returns 503
+        mockServer.expect(requestTo("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        // Fallback model responds with 200 OK
+        mockServer.expect(requestTo("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(withSuccess(fallbackJson, MediaType.APPLICATION_JSON));
+
+        AiChatRequest request = new AiChatRequest("Where is asset ECG-001 currently reported?");
+        AiChatResponse response = aiService.chat(request, "admin@medtrack.org");
+
+        assertNotNull(response);
+        assertEquals("Asset ECG-001 reported at Cardiology Ward from fallback model.", response.getAnswer());
+        assertEquals("gemini-3.5-flash-lite", response.getModel());
+        mockServer.verify();
+    }
+
+    @Test
+    @DisplayName("12. When all candidate models fail with 503, throws AiProviderException(AI_PROVIDER_UNAVAILABLE, 503)")
+    void testChat_allModelsFail503_throwsProviderUnavailable() {
+        aiProperties.setProvider("GEMINI");
+        aiProperties.setApiKey("test-gemini-key");
+        aiProperties.setModel("gemini-3.8-flash");
+        aiProperties.setFallbackModels("gemini-3.5-flash-lite");
+        aiProperties.setMaxRetries(0);
+
+        mockServer.expect(requestTo("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        mockServer.expect(requestTo("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent"))
+                .andExpect(method(HttpMethod.POST))
+                .andRespond(org.springframework.test.web.client.response.MockRestResponseCreators.withStatus(HttpStatus.SERVICE_UNAVAILABLE));
+
+        AiChatRequest request = new AiChatRequest("Where is asset ECG-001 currently reported?");
+
+        AiProviderException ex = assertThrows(AiProviderException.class, () ->
+                aiService.chat(request, "admin@medtrack.org"));
+
+        assertEquals("AI_PROVIDER_UNAVAILABLE", ex.getErrorCode());
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, ex.getStatus());
+        mockServer.verify();
+    }
 }

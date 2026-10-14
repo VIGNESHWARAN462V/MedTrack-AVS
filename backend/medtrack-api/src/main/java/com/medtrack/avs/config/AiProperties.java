@@ -27,9 +27,26 @@ public class AiProperties {
     private String apiKey = "";
 
     /**
-     * Model identifier (e.g. gemini-3.8-flash, gpt-4o-mini).
+     * Model identifier (e.g. gemini-3.5-flash-lite, gpt-4o-mini).
      */
-    private String model = "gemini-3.8-flash";
+    private String model = "gemini-3.5-flash-lite";
+
+    /**
+     * Optional comma-separated list of fallback models to try if the primary model
+     * experiences high demand (HTTP 503), rate limits (HTTP 429), or is unavailable (HTTP 404).
+     */
+    private String fallbackModels = "";
+
+    /**
+     * Maximum retry attempts for transient errors (HTTP 503 / 429).
+     * Defaults to 0 to preserve deterministic single-call behavior in unit tests.
+     */
+    private int maxRetries = 0;
+
+    /**
+     * Backoff duration between retries in milliseconds.
+     */
+    private long retryBackoffMs = 500;
 
     /**
      * Optional custom base URL for the AI provider.
@@ -45,6 +62,28 @@ public class AiProperties {
      * HTTP read/response timeout in milliseconds. Defaults to 30000ms for reasoning/thinking models.
      */
     private int readTimeoutMs = 30000;
+
+    /**
+     * Returns the ordered candidate models to attempt (primary model followed by fallbacks).
+     */
+    public java.util.List<String> getCandidateModels() {
+        java.util.List<String> candidates = new java.util.ArrayList<>();
+        if (StringUtils.hasText(model)) {
+            candidates.add(model.trim());
+        }
+        if (StringUtils.hasText(fallbackModels)) {
+            for (String fallback : fallbackModels.split(",")) {
+                String trimmed = fallback.trim();
+                if (StringUtils.hasText(trimmed) && !candidates.contains(trimmed)) {
+                    candidates.add(trimmed);
+                }
+            }
+        }
+        if (candidates.isEmpty()) {
+            candidates.add("gemini-3.5-flash-lite");
+        }
+        return candidates;
+    }
 
     /**
      * Determines whether the AI provider is properly configured on the server.
