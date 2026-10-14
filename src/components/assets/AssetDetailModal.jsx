@@ -221,13 +221,13 @@ export default function AssetDetailModal({ asset: initialAsset, onClose, onTrans
                       <div className="col-12 col-sm-6">
                         <div>Coordinates</div>
                         <div className="fw-bold text-dark font-monospace">
-                          {asset.latitude.toFixed(6)}, {asset.longitude.toFixed(6)}
+                          {Number(asset.latitude).toFixed(6)}, {Number(asset.longitude).toFixed(6)}
                         </div>
                       </div>
                       <div className="col-6 col-sm-3">
                         <div>Accuracy</div>
                         <div className="fw-bold text-dark font-monospace">
-                          {asset.gpsAccuracy != null ? `±${asset.gpsAccuracy.toFixed(1)}m` : 'Unknown'}
+                          {gpsStatus.accuracy != null ? `±${gpsStatus.accuracy.toFixed(1)}m` : 'Unknown'}
                         </div>
                       </div>
                       <div className="col-6 col-sm-3">
@@ -236,6 +236,14 @@ export default function AssetDetailModal({ asset: initialAsset, onClose, onTrans
                           {gpsStatus.relativeTime || gpsStatus.lastUpdateText}
                         </div>
                       </div>
+                      {gpsStatus.isLowPrecision && (
+                        <div className="col-12 mt-1 text-warning-emphasis d-flex align-items-center gap-1" style={{ fontSize: '0.75rem' }}>
+                          <span className="material-symbols-outlined fs-6">warning</span>
+                          <span>
+                            Coarse fix ({gpsStatus.accuracy != null && Number.isFinite(gpsStatus.accuracy) ? `±${gpsStatus.accuracy.toFixed(1)}m` : 'Unknown'} reported uncertainty). Moving to an open area may improve reading precision.
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="d-flex flex-wrap align-items-center justify-content-between text-muted gap-2" style={{ fontSize: '0.8rem' }}>

@@ -5,6 +5,7 @@ import { assetService } from '../services/assetService';
 import { trackingService } from '../services/trackingService';
 import { transferService } from '../services/transferService';
 import { useAuth } from '../context/AuthContext';
+import { getGpsAccuracyCategory } from '../utils/gpsTelemetry';
 
 const SAMPLE_QRS = [
   { code: 'ECG-001', name: 'Portable ECG Machine', qr: 'MEDTRACK:ASSET:ECG-001', file: '/qr-samples/ecg-001.png', dept: 'Cardiology' },
@@ -904,26 +905,13 @@ export default function QrScannerPage() {
     setTrackingState('READY');
   }, []);
 
-  // Accuracy badge helper
+  // Accuracy badge helper (High <=10m, Medium 10-30m, Low/Coarse >30m)
   const getAccuracyBadge = (acc) => {
-    if (acc == null) return null;
-    if (acc <= 10) {
-      return (
-        <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-0" style={{ fontSize: '0.65rem' }}>
-          HIGH PRECISION (&lt;10m)
-        </span>
-      );
-    }
-    if (acc <= 30) {
-      return (
-        <span className="badge bg-info-subtle text-info border border-info-subtle px-2 py-0" style={{ fontSize: '0.65rem' }}>
-          MEDIUM (10-30m)
-        </span>
-      );
-    }
+    const category = getGpsAccuracyCategory(acc);
+    if (category.category === 'UNKNOWN') return null;
     return (
-      <span className="badge bg-warning-subtle text-warning border border-warning-subtle px-2 py-0" style={{ fontSize: '0.65rem' }}>
-        LOW (&gt;30m)
+      <span className={`badge ${category.badgeClass} px-2 py-0`} style={{ fontSize: '0.65rem' }}>
+        {category.label}
       </span>
     );
   };
@@ -1118,24 +1106,45 @@ export default function QrScannerPage() {
             style={{ backgroundColor: 'var(--primary-container)' }}
           >
             <div className="d-flex align-items-center gap-3">
-              <div
-                className="rounded-circle bg-success text-white d-flex align-items-center justify-content-center p-2"
-                style={{ width: '40px', height: '40px' }}
-              >
-                <span className="spinner-grow spinner-grow-sm text-white" style={{ width: '14px', height: '14px' }} />
-              </div>
-              <div>
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <span className="badge rounded-pill bg-success text-white px-2 py-1 fw-bold" style={{ fontSize: '0.7rem' }}>
-                    ● GPS ACTIVE
-                  </span>
-                  <span className="badge rounded-pill bg-white text-dark px-2 py-1 font-monospace" style={{ fontSize: '0.7rem' }}>
-                    TRACKING ACTIVE
-                  </span>
-                </div>
-                <h2 className="fs-5 fw-bold mb-0 text-white">{verifiedAsset.assetCode}</h2>
-                <div className="text-white-50" style={{ fontSize: '0.8rem' }}>{verifiedAsset.assetName}</div>
-              </div>
+              {(() => {
+                const accCat = getGpsAccuracyCategory(gpsCoords.accuracy);
+                return (
+                  <>
+                    <div
+                      className={`rounded-circle ${accCat.isLowPrecision ? 'bg-warning text-dark' : 'bg-success text-white'} d-flex align-items-center justify-content-center p-2`}
+                      style={{ width: '40px', height: '40px' }}
+                    >
+                      <span className={`spinner-grow spinner-grow-sm ${accCat.isLowPrecision ? 'text-dark' : 'text-white'}`} style={{ width: '14px', height: '14px' }} />
+                    </div>
+                    <div>
+                      <div className="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <span className="badge rounded-pill bg-white text-dark px-2 py-1 font-monospace fw-bold" style={{ fontSize: '0.7rem' }}>
+                          ● SESSION ACTIVE
+                        </span>
+                        {accCat.category === 'UNKNOWN' ? (
+                          <span className="badge rounded-pill bg-secondary text-white px-2 py-1 font-monospace" style={{ fontSize: '0.7rem' }}>
+                            {accCat.label}
+                          </span>
+                        ) : accCat.category === 'LOW' ? (
+                          <span className="badge rounded-pill bg-warning text-dark px-2 py-1 fw-bold border border-warning" style={{ fontSize: '0.7rem' }}>
+                            ⚠ {accCat.label}
+                          </span>
+                        ) : accCat.category === 'HIGH' ? (
+                          <span className="badge rounded-pill bg-success text-white px-2 py-1 fw-bold" style={{ fontSize: '0.7rem' }}>
+                            ● {accCat.label}
+                          </span>
+                        ) : (
+                          <span className="badge rounded-pill bg-info text-white px-2 py-1 fw-bold" style={{ fontSize: '0.7rem' }}>
+                            ● {accCat.label}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="fs-5 fw-bold mb-0 text-white">{verifiedAsset.assetCode}</h2>
+                      <div className="text-white-50" style={{ fontSize: '0.8rem' }}>{verifiedAsset.assetName}</div>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             <div className="text-end">
@@ -1144,6 +1153,20 @@ export default function QrScannerPage() {
               </span>
             </div>
           </div>
+
+          {/* Explicit Low Precision / Coarse Location Warning Alert */}
+          {getGpsAccuracyCategory(gpsCoords.accuracy).isLowPrecision && (
+            <div
+              className="p-2 px-3 rounded-3 bg-warning-subtle text-warning-emphasis border border-warning-subtle small d-flex align-items-center gap-2 mb-3 shadow-sm"
+              style={{ fontSize: '0.8rem' }}
+              role="alert"
+            >
+              <span className="material-symbols-outlined fs-5 text-warning-emphasis flex-shrink-0">warning</span>
+              <div>
+                <strong>Coarse Location Fix (±{Number(gpsCoords.accuracy).toFixed(1)}m):</strong> Tracking session is active and transmitting, but the reported position has a large uncertainty radius. Moving to an open outdoor area may improve reading precision.
+              </div>
+            </div>
+          )}
 
           {/* Telemetry Real-time Data Grid */}
           <div className="row g-2 mb-3">
