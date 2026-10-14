@@ -106,7 +106,7 @@ export default function LandingPage() {
                 <h1 className="display-5 fw-bold mb-3 lh-sm" style={{ letterSpacing: '-0.02em' }}>
                   Know Where Every Medical Asset Is.
                 </h1>
-                <p className="lead text-muted mb-4" style={{ fontSize: '1.1rem' }}>
+                <p className="lead text-muted mb-4" style={{ fontSize: 'clamp(1rem, 2.5vw, 1.1rem)', lineHeight: 1.5 }}>
                   Track mobile medical equipment in real time using QR identification, GPS location telemetry, and a live hospital interactive map.
                 </p>
                 <div className="d-flex flex-wrap gap-3">

@@ -97,7 +97,7 @@
       .fs-6 { font-size: 1rem; }
       .display-5 { font-size: calc(1.425rem + 2.1vw); font-weight: 700; line-height: 1.2; font-family: var(--font-family-display); }
       @media (min-width: 1200px) { .display-5 { font-size: 3rem; } }
-      .lead { font-size: 1.1rem; font-weight: 400; line-height: 1.5; }
+      .lead { font-size: clamp(1rem, 2.5vw, 1.1rem); font-weight: 400; line-height: 1.5; }
       .text-muted { color: #475569 !important; }
       .rounded-2 { border-radius: 0.375rem; }
       .rounded-pill { border-radius: 50rem; }
@@ -196,7 +196,7 @@
                 <h1 class="display-5 fw-bold mb-3 lh-sm" style="letter-spacing: -0.02em;">
                   Know Where Every Medical Asset Is.
                 </h1>
-                <p class="lead text-muted mb-4" style="font-size: 1.1rem;">
+                <p class="lead text-muted mb-4" style="font-size: clamp(1rem, 2.5vw, 1.1rem); line-height: 1.5;">
                   Track mobile medical equipment in real time using QR identification, GPS location telemetry, and a live hospital interactive map.
                 </p>
                 <div class="d-flex flex-wrap gap-3">
