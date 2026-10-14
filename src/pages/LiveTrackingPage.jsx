@@ -150,6 +150,18 @@ export default function LiveTrackingPage() {
   const [assetsMap, setAssetsMap] = useState({});
   const [geofences, setGeofences] = useState([]);
   const [selectedAssetId, setSelectedAssetId] = useState(queryAssetId ? Number(queryAssetId) : null);
+  const [prevQueryAssetId, setPrevQueryAssetId] = useState(queryAssetId);
+
+  // Synchronize selected asset if URL query param ?assetId= changes
+  if (queryAssetId !== prevQueryAssetId) {
+    setPrevQueryAssetId(queryAssetId);
+    if (queryAssetId) {
+      const parsed = Number(queryAssetId);
+      if (!isNaN(parsed)) {
+        setSelectedAssetId(parsed);
+      }
+    }
+  }
   const [connectionStatus, setConnectionStatus] = useState(SocketStatus.DISCONNECTED);
   const [loading, setLoading] = useState(true);
   const [eventsReceivedCount, setEventsReceivedCount] = useState(0);

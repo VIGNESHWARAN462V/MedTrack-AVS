@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { assetService } from '../../services/assetService';
+import { getGpsTelemetryStatus } from '../../utils/gpsTelemetry';
 
 export default function AssetDetailModal({ asset: initialAsset, onClose, onTransfer }) {
+  const navigate = useNavigate();
   const [asset, setAsset] = useState(initialAsset);
   const [loading, setLoading] = useState(false);
 
@@ -190,16 +193,69 @@ export default function AssetDetailModal({ asset: initialAsset, onClose, onTrans
               </div>
             </div>
 
-            {/* Tracking Status Notice */}
-            <div className="p-3 rounded-3 mb-4" style={{ backgroundColor: 'var(--secondary-container)', border: '1px solid rgba(15, 118, 110, 0.2)' }}>
-              <div className="d-flex align-items-center gap-2 mb-1" style={{ color: 'var(--on-secondary-container)' }}>
-                <span className="material-symbols-outlined fs-6">verified</span>
-                <span className="fw-bold" style={{ fontSize: '0.8rem' }}>Database-Backed Asset Record</span>
-              </div>
-              <div style={{ fontSize: '0.825rem', color: 'var(--on-secondary-container)' }}>
-                Asset <strong>{asset.assetCode}</strong> is actively registered in MySQL (<code>medtrack_db</code>). Live GPS telemetry and automatic indoor beacon pings will be connected in subsequent telemetry phases.
-              </div>
-            </div>
+            {/* Real-time GPS Tracking Status */}
+            {(() => {
+              const gpsStatus = getGpsTelemetryStatus(asset);
+              return (
+                <div
+                  className="p-3 rounded-3 mb-4"
+                  style={{
+                    backgroundColor: 'var(--surface-container-low)',
+                    border: '1px solid var(--outline-variant, rgba(0,0,0,0.1))',
+                  }}
+                >
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <div className="d-flex align-items-center gap-2">
+                      <span className="material-symbols-outlined fs-5 text-primary">satellite_alt</span>
+                      <span className="fw-bold text-dark" style={{ fontSize: '0.85rem' }}>
+                        Outdoor GPS Telemetry
+                      </span>
+                    </div>
+                    <span className={`badge ${gpsStatus.badgeClass} px-2 py-1`} style={{ fontSize: '0.7rem' }}>
+                      {gpsStatus.label}
+                    </span>
+                  </div>
+
+                  {gpsStatus.hasFix ? (
+                    <div className="row g-2 text-muted" style={{ fontSize: '0.8rem' }}>
+                      <div className="col-12 col-sm-6">
+                        <div>Coordinates</div>
+                        <div className="fw-bold text-dark font-monospace">
+                          {asset.latitude.toFixed(6)}, {asset.longitude.toFixed(6)}
+                        </div>
+                      </div>
+                      <div className="col-6 col-sm-3">
+                        <div>Accuracy</div>
+                        <div className="fw-bold text-dark font-monospace">
+                          {asset.gpsAccuracy != null ? `±${asset.gpsAccuracy.toFixed(1)}m` : 'Unknown'}
+                        </div>
+                      </div>
+                      <div className="col-6 col-sm-3">
+                        <div>Last Fix</div>
+                        <div className="fw-bold text-primary font-monospace">
+                          {gpsStatus.relativeTime || gpsStatus.lastUpdateText}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-wrap align-items-center justify-content-between text-muted gap-2" style={{ fontSize: '0.8rem' }}>
+                      <span>No outdoor GPS fix recorded for this asset yet.</span>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-link p-0 text-decoration-none"
+                        style={{ fontSize: '0.75rem' }}
+                        onClick={() => {
+                          onClose();
+                          navigate('/scan-qr');
+                        }}
+                      >
+                        Open QR Scanner to Track
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Quick Actions Footer */}
             <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2 border-top">
@@ -208,6 +264,18 @@ export default function AssetDetailModal({ asset: initialAsset, onClose, onTrans
               </span>
 
               <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary rounded-2 d-inline-flex align-items-center gap-1"
+                  onClick={() => {
+                    onClose();
+                    navigate(`/live-tracking?assetId=${asset.id}`);
+                  }}
+                  id="btn-modal-live-map"
+                >
+                  <span className="material-symbols-outlined fs-6">map</span>
+                  <span>Live Map</span>
+                </button>
                 <button
                   type="button"
                   className="btn btn-sm btn-light border rounded-2"

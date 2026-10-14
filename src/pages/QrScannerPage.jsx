@@ -4,6 +4,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { assetService } from '../services/assetService';
 import { trackingService } from '../services/trackingService';
 import { transferService } from '../services/transferService';
+import { useAuth } from '../context/AuthContext';
 
 const SAMPLE_QRS = [
   { code: 'ECG-001', name: 'Portable ECG Machine', qr: 'MEDTRACK:ASSET:ECG-001', file: '/qr-samples/ecg-001.png', dept: 'Cardiology' },
@@ -18,6 +19,15 @@ const TELEMETRY_THROTTLE_MS = 5000;
 export default function QrScannerPage() {
   const navigate = useNavigate();
   const { onSelectAsset } = useOutletContext() || {};
+  const { user, roles } = useAuth();
+
+  const isAdminOrSupervisor =
+    roles?.includes('ADMIN') ||
+    roles?.includes('SUPERVISOR') ||
+    roles?.includes('ROLE_ADMIN') ||
+    roles?.includes('ROLE_SUPERVISOR') ||
+    user?.role === 'ADMIN' ||
+    user?.role === 'SUPERVISOR';
 
   // Scanner status: 'INITIALIZING' | 'SCANNING' | 'DETECTED' | 'VERIFYING' | 'SUCCESS' | 'NOT_FOUND' | 'ERROR'
   const [scannerState, setScannerState] = useState('INITIALIZING');
@@ -75,6 +85,7 @@ export default function QrScannerPage() {
   const activeSessionRef = useRef(null);
   const relativeTimerRef = useRef(null);
   const trackingStateRef = useRef(trackingState);
+  const sessionStartAttemptRef = useRef(0);
 
   // Keep refs in sync with state
   useEffect(() => {
@@ -111,6 +122,22 @@ export default function QrScannerPage() {
       if (relativeTimerRef.current) {
         clearInterval(relativeTimerRef.current);
       }
+    };
+  }, [trackingState]);
+
+  // Warn user if navigating away or closing window while GPS tracking is active
+  useEffect(() => {
+    if (trackingState !== 'ACTIVE') return;
+
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = 'Real-time GPS tracking is actively running. Navigating away will stop the tracking session.';
+      return e.returnValue;
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
     };
   }, [trackingState]);
 
@@ -160,6 +187,8 @@ export default function QrScannerPage() {
 
   // Stop GPS watch and active session
   const stopGpsTracking = useCallback(async () => {
+    sessionStartAttemptRef.current += 1;
+
     if (watchIdRef.current !== null && 'geolocation' in navigator) {
       try {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -175,21 +204,17 @@ export default function QrScannerPage() {
     }
 
     const currentSession = activeSessionRef.current;
-    const currentAsset = verifiedAssetRef.current;
+    activeSessionRef.current = null;
+    setActiveSession(null);
 
-    try {
-      if (currentSession?.id) {
+    if (currentSession?.id) {
+      try {
         await trackingService.stopSession(currentSession.id);
-      } else if (currentAsset?.id) {
-        await trackingService.stopSessionByAssetId(currentAsset.id);
+      } catch (err) {
+        if (err?.response?.status !== 404) {
+          console.warn('Stop session API error:', err);
+        }
       }
-    } catch (err) {
-      if (err?.response?.status !== 404) {
-        console.warn('Stop session API error:', err);
-      }
-    } finally {
-      setActiveSession(null);
-      activeSessionRef.current = null;
     }
   }, []);
 
@@ -612,6 +637,12 @@ export default function QrScannerPage() {
 
   // START TRACKING: Confirms/starts server session FIRST, then activates real browser GPS watchPosition
   const handleStartTracking = useCallback(async () => {
+    if (typeof window !== 'undefined' && window.isSecureContext === false) {
+      setGpsErrorMessage('Device Geolocation requires a secure HTTPS connection. Please ensure MedTrack is accessed over HTTPS.');
+      setTrackingState('ERROR');
+      return;
+    }
+
     if (!('geolocation' in navigator)) {
       setGpsErrorMessage('Geolocation is not supported by this browser.');
       setTrackingState('ERROR');
@@ -630,21 +661,57 @@ export default function QrScannerPage() {
     lastSentTimeRef.current = 0;
     lastFixTimeRef.current = null;
 
-    // STEP 1: Create or obtain active GPS session FIRST on backend
+    // Track attempt sequence to detect cancellation or unmount while startSession is in flight
+    sessionStartAttemptRef.current += 1;
+    const currentAttempt = sessionStartAttemptRef.current;
+
+    // STEP 1: Create active GPS session FIRST on backend
     let session = activeSessionRef.current;
-    if (!session || !session.active) {
+    if (!session || !session.active || !session.id) {
       try {
         const sessionRes = await trackingService.startSession(currentAsset.id);
+
+        // Check if user cancelled or component unmounted while startSession was in flight
+        if (!isMountedRef.current || currentAttempt !== sessionStartAttemptRef.current) {
+          // Immediately stop the newly created session so it doesn't linger on server
+          if (sessionRes?.id) {
+            try {
+              await trackingService.stopSession(sessionRes.id);
+            } catch (abortErr) {
+              console.warn('Rollback of aborted session failed:', abortErr);
+            }
+          }
+          return;
+        }
+
         session = sessionRes;
         setActiveSession(sessionRes);
         activeSessionRef.current = sessionRes;
       } catch (sessionErr) {
-        console.warn('Session start note:', sessionErr);
+        console.warn('Session start error:', sessionErr);
+        if (!isMountedRef.current || currentAttempt !== sessionStartAttemptRef.current) {
+          return;
+        }
+
+        activeSessionRef.current = null;
+        setActiveSession(null);
+
         if (sessionErr?.response?.status === 409) {
-          // 409 Conflict: session already active on server, adopt active state
-          session = { id: null, active: true };
-          setActiveSession(session);
-          activeSessionRef.current = session;
+          // 409 Conflict: session already active on server.
+          // DO NOT start geolocation, DO NOT stop session, preserve the other user's session.
+          const msg =
+            sessionErr?.response?.data?.message ||
+            'An active GPS tracking session already exists for this asset. Another user or device is currently tracking it.';
+          setGpsErrorMessage(msg);
+          setTrackingState('ERROR');
+          return;
+        } else if (sessionErr?.response?.status === 403) {
+          const msg =
+            sessionErr?.response?.data?.message ||
+            `Access denied: You must be assigned to ${currentAsset.assetCode}, or have supervisor/administrator privileges, to start GPS tracking.`;
+          setGpsErrorMessage(msg);
+          setTrackingState('ERROR');
+          return;
         } else {
           const msg = sessionErr?.response?.data?.message || sessionErr.message || 'Failed to start GPS tracking session on server.';
           setGpsErrorMessage(msg);
@@ -725,13 +792,13 @@ export default function QrScannerPage() {
       }
     };
 
-    const onGeoError = (err) => {
+    const onGeoError = async (err) => {
       if (!isMountedRef.current) return;
       console.warn('Geolocation watch error:', err);
 
       let friendlyMsg = 'An unexpected error occurred while obtaining GPS coordinates.';
       if (err.code === 1) { // PERMISSION_DENIED
-        friendlyMsg = 'Location permission was denied. Please allow location access in your browser to start tracking.';
+        friendlyMsg = 'Location permission was denied. Please allow device location access in your browser to start tracking.';
       } else if (err.code === 2) { // POSITION_UNAVAILABLE
         friendlyMsg = 'Your location could not be determined. Please ensure your device GPS is turned on.';
       } else if (err.code === 3) { // TIMEOUT
@@ -747,6 +814,19 @@ export default function QrScannerPage() {
             navigator.geolocation.clearWatch(watchIdRef.current);
           } catch {}
           watchIdRef.current = null;
+        }
+
+        // Clean up server session ONLY if this client created/owns a confirmed session ID
+        const currentSessionToStop = activeSessionRef.current;
+        activeSessionRef.current = null;
+        setActiveSession(null);
+
+        if (currentSessionToStop?.id) {
+          try {
+            await trackingService.stopSession(currentSessionToStop.id);
+          } catch (cleanupErr) {
+            console.warn('Session rollback on geo error caught:', cleanupErr);
+          }
         }
       }
     };
@@ -766,6 +846,8 @@ export default function QrScannerPage() {
 
   // STOP TRACKING: clears watch FIRST so no more callbacks fire, then stops server session
   const handleStopTracking = useCallback(async () => {
+    sessionStartAttemptRef.current += 1;
+
     if (watchIdRef.current !== null && 'geolocation' in navigator) {
       try {
         navigator.geolocation.clearWatch(watchIdRef.current);
@@ -781,24 +863,45 @@ export default function QrScannerPage() {
     }
 
     const currentSession = activeSessionRef.current;
-    const currentAsset = verifiedAssetRef.current;
-
-    // Immediately mark local session inactive so zero pending geolocation callbacks can submit
     activeSessionRef.current = null;
     setActiveSession(null);
     setTrackingState('STOPPED');
 
-    try {
-      if (currentSession?.id) {
+    if (currentSession?.id) {
+      try {
         await trackingService.stopSession(currentSession.id);
-      } else if (currentAsset?.id) {
-        await trackingService.stopSessionByAssetId(currentAsset.id);
-      }
-    } catch (err) {
-      if (err?.response?.status !== 404) {
-        console.warn('Stop session API error:', err);
+      } catch (err) {
+        if (err?.response?.status !== 404) {
+          console.warn('Stop session API error:', err);
+        }
       }
     }
+  }, []);
+
+  // Cancel acquisition while waiting for satellite fix
+  const handleCancelAcquisition = useCallback(async () => {
+    sessionStartAttemptRef.current += 1;
+
+    if (watchIdRef.current !== null && 'geolocation' in navigator) {
+      try {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      } catch {}
+      watchIdRef.current = null;
+    }
+
+    const currentSessionToStop = activeSessionRef.current;
+    activeSessionRef.current = null;
+    setActiveSession(null);
+
+    if (currentSessionToStop?.id) {
+      try {
+        await trackingService.stopSession(currentSessionToStop.id);
+      } catch (cancelErr) {
+        console.warn('Session rollback on cancel caught:', cancelErr);
+      }
+    }
+
+    setTrackingState('READY');
   }, []);
 
   // Accuracy badge helper
@@ -1127,16 +1230,29 @@ export default function QrScannerPage() {
             </span>
           </div>
 
-          {/* Action Button: STOP TRACKING */}
-          <button
-            type="button"
-            className="btn btn-danger w-100 py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm"
-            onClick={handleStopTracking}
-            id="btn-stop-tracking"
-          >
-            <span className="material-symbols-outlined fs-5">stop_circle</span>
-            <span className="fw-bold fs-6">STOP TRACKING</span>
-          </button>
+          {/* Action Buttons: VIEW ON LIVE MAP & STOP TRACKING */}
+          <div className="d-flex flex-column flex-sm-row gap-2">
+            <button
+              type="button"
+              className="btn btn-outline-primary flex-grow-1 py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm"
+              onClick={() => window.open(`/live-tracking?assetId=${verifiedAsset.id}`, '_blank')}
+              id="btn-view-live-map"
+              title="Open Live Tracking map in a new tab to observe live marker position"
+            >
+              <span className="material-symbols-outlined fs-5">open_in_new</span>
+              <span className="fw-bold fs-6">VIEW ON LIVE MAP</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-danger flex-grow-1 py-3 d-flex align-items-center justify-content-center gap-2 shadow-sm"
+              onClick={handleStopTracking}
+              id="btn-stop-tracking"
+            >
+              <span className="material-symbols-outlined fs-5">stop_circle</span>
+              <span className="fw-bold fs-6">STOP TRACKING</span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -1156,13 +1272,7 @@ export default function QrScannerPage() {
           <button
             type="button"
             className="btn btn-outline-secondary btn-sm px-4"
-            onClick={() => {
-              if (watchIdRef.current !== null && 'geolocation' in navigator) {
-                navigator.geolocation.clearWatch(watchIdRef.current);
-                watchIdRef.current = null;
-              }
-              setTrackingState('READY');
-            }}
+            onClick={handleCancelAcquisition}
           >
             Cancel
           </button>
@@ -1251,6 +1361,16 @@ export default function QrScannerPage() {
 
             <button
               type="button"
+              className="btn btn-outline-primary py-2 d-flex align-items-center justify-content-center gap-2"
+              onClick={() => navigate(`/live-tracking?assetId=${verifiedAsset.id}`)}
+              id="btn-view-map-stopped"
+            >
+              <span className="material-symbols-outlined fs-5">map</span>
+              <span className="fw-semibold">VIEW ON MAP</span>
+            </button>
+
+            <button
+              type="button"
               className="btn btn-outline-secondary py-2 d-flex align-items-center justify-content-center gap-2"
               onClick={handleRestartScanner}
               id="btn-scan-another-stopped"
@@ -1327,7 +1447,7 @@ export default function QrScannerPage() {
               </div>
             </div>
             <div className="col-12 border-top pt-2 mt-1">
-              <div className="d-flex justify-content-between align-items-center">
+              <div className="d-flex flex-wrap justify-content-between align-items-center gap-1">
                 <div>
                   <div className="text-muted small">Last Known GPS Location</div>
                   <div className="fw-semibold text-secondary font-monospace" style={{ fontSize: '0.8rem' }}>
@@ -1336,9 +1456,19 @@ export default function QrScannerPage() {
                       : 'No previous GPS telemetry recorded'}
                   </div>
                 </div>
-                <span className="badge bg-primary-subtle text-primary small px-2 py-1" style={{ fontSize: '0.7rem' }}>
-                  Real Mobile GPS
-                </span>
+                <div className="d-flex align-items-center gap-1">
+                  {isAdminOrSupervisor ? (
+                    <span className="badge bg-success-subtle text-success small px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                      <span className="material-symbols-outlined align-middle fs-6 me-1">verified_user</span>
+                      Supervisor/Admin Authorized
+                    </span>
+                  ) : (
+                    <span className="badge bg-primary-subtle text-primary small px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                      <span className="material-symbols-outlined align-middle fs-6 me-1">badge</span>
+                      Staff Assignment Mode
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
