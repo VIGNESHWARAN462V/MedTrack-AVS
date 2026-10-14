@@ -287,6 +287,48 @@ export default function IndoorFloorMap({
       : 650;
   }, [selectedFloor]);
 
+  // Track rendered container width to adapt marker dimensions responsively
+  const [containerWidth, setContainerWidth] = useState(1000);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        if (rect.width > 0) {
+          setContainerWidth(rect.width);
+        }
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    let ro = null;
+    if (typeof ResizeObserver !== 'undefined' && containerRef.current) {
+      ro = new ResizeObserver(updateWidth);
+      ro.observe(containerRef.current);
+    }
+    return () => {
+      window.removeEventListener('resize', updateWidth);
+      if (ro) ro.disconnect();
+    };
+  }, []);
+
+  // Responsive marker scaling to keep pin clearly visible (~14-18 CSS px) across mobile and desktop viewports
+  const markerScale = useMemo(() => {
+    const renderedSvgWidth = Math.min(Math.max(containerWidth - 24, 280), canvasWidth);
+    const svgScale = Math.max(renderedSvgWidth / canvasWidth, 0.2);
+
+    let targetRadiusCss = 10.0;
+    if (containerWidth < 576) {
+      targetRadiusCss = 7.75; // ~15.5 CSS px diameter on mobile
+    } else if (containerWidth < 992) {
+      targetRadiusCss = 9.0;  // 18 CSS px diameter on tablet
+    } else {
+      targetRadiusCss = 10.0; // 20 CSS px diameter on desktop
+    }
+
+    return Math.max(0.7, Math.min(2.5, targetRadiusCss / (12 * svgScale)));
+  }, [containerWidth, canvasWidth]);
+
 
 
   // Zoom controls
@@ -390,7 +432,7 @@ export default function IndoorFloorMap({
   const hasFloorPlanImage = Boolean(authenticatedBlobUrl && !imageError);
 
   return (
-    <div className="card border-0 shadow-sm rounded-3 overflow-hidden d-flex flex-column" style={{ minHeight: '620px' }}>
+    <div className="card border-0 shadow-sm rounded-3 overflow-hidden d-flex flex-column" style={{ minHeight: 'min(620px, 80vh)' }}>
       {/* Top Facility Breadcrumb & Actions Bar */}
       <div className="card-header bg-white py-2 px-3 border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2 flex-wrap">
@@ -579,7 +621,10 @@ export default function IndoorFloorMap({
         style={{
           cursor: isPositioningMode ? 'crosshair' : isDragging ? 'grabbing' : 'grab',
           userSelect: 'none',
-          minHeight: '440px',
+          minHeight: '380px',
+          width: '100%',
+          padding: '12px',
+          backgroundColor: hasFloorPlanImage ? '#f8fafc' : '#f1f5f9',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -602,19 +647,25 @@ export default function IndoorFloorMap({
               transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
               transformOrigin: 'center center',
               transition: isDragging ? 'none' : 'transform 0.15s ease-out',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
             <svg
               ref={svgRef}
-              width={canvasWidth}
-              height={canvasHeight}
               viewBox={`0 0 ${canvasWidth} ${canvasHeight}`}
               onClick={handleCanvasClick}
               style={{
-                maxWidth: '100%',
+                width: '100%',
+                height: 'auto',
                 maxHeight: '100%',
+                maxWidth: `${canvasWidth}px`,
+                aspectRatio: `${canvasWidth} / ${canvasHeight}`,
                 display: 'block',
-                background: '#ffffff',
+                background: hasFloorPlanImage ? '#ffffff' : '#f8fafc',
                 boxShadow: '0 8px 30px rgba(0, 0, 0, 0.08)',
                 borderRadius: '8px',
                 border: isPositioningMode ? '2px dashed #0284c7' : '1px solid #cbd5e1',
@@ -623,8 +674,8 @@ export default function IndoorFloorMap({
               <defs>
                 {/* Schematic Grid Pattern */}
                 <pattern id="schematicGrid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#e2e8f0" strokeWidth="1" />
-                  <path d="M 20 0 L 20 40 M 0 20 L 40 20" fill="none" stroke="#f1f5f9" strokeWidth="0.5" />
+                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#cbd5e1" strokeWidth="1" />
+                  <path d="M 20 0 L 20 40 M 0 20 L 40 20" fill="none" stroke="#e2e8f0" strokeWidth="0.6" strokeDasharray="2, 2" />
                 </pattern>
 
                 {/* Subtle outer glow for selected room */}
@@ -666,24 +717,43 @@ export default function IndoorFloorMap({
                 />
               )}
 
-              {/* 3. Outer Building Floor Perimeter Guide (Schematic Boundary) */}
+              {/* 3. Outer Building Floor Perimeter Guide (Architectural Wall Framing) */}
               <rect
-                x="15"
-                y="15"
-                width={canvasWidth - 30}
-                height={canvasHeight - 30}
-                fill="none"
+                x="16"
+                y="16"
+                width={canvasWidth - 32}
+                height={canvasHeight - 32}
+                fill={hasFloorPlanImage ? 'none' : '#ffffff'}
+                stroke="#475569"
+                strokeWidth="2.5"
+                rx="8"
+              />
+              <rect
+                x="22"
+                y="22"
+                width={canvasWidth - 44}
+                height={canvasHeight - 44}
+                fill={hasFloorPlanImage ? 'none' : 'url(#schematicGrid)'}
                 stroke="#94a3b8"
-                strokeWidth="2"
-                strokeDasharray="6, 6"
+                strokeWidth="1"
+                strokeDasharray="4, 4"
                 rx="6"
               />
 
               {/* Floor Header Label in Top-Left Corner of Canvas */}
-              <g transform="translate(25, 35)">
-                <text fill="#64748b" fontSize="12" fontWeight="700" letterSpacing="1">
+              <g transform="translate(36, 46)">
+                <rect x="-6" y="-14" width="240" height="22" rx="4" fill="#f1f5f9" stroke="#cbd5e1" strokeWidth="1" opacity="0.95" />
+                <text fill="#334155" fontSize="11" fontWeight="700" letterSpacing="0.8">
                   {building?.code || 'BLD'} &bull; {formatFloorLabel(selectedFloor).toUpperCase()}
                 </text>
+              </g>
+
+              {/* North Compass Rose Indicator in Top-Right Corner */}
+              <g transform={`translate(${canvasWidth - 45}, 45)`}>
+                <circle cx="0" cy="0" r="14" fill="#ffffff" stroke="#94a3b8" strokeWidth="1.5" />
+                <polygon points="0,-10 3.5,0 -3.5,0" fill="#dc2626" />
+                <polygon points="0,10 3.5,0 -3.5,0" fill="#64748b" />
+                <text x="0" y="-12" textAnchor="middle" fill="#dc2626" fontSize="8" fontWeight="800">N</text>
               </g>
 
               {/* 4. Render Configured Rooms */}
@@ -736,9 +806,23 @@ export default function IndoorFloorMap({
                       ry="6"
                       fill={isSelected ? 'rgba(0, 92, 85, 0.28)' : theme.fill}
                       stroke={isSelected ? '#005c55' : theme.stroke}
-                      strokeWidth={isSelected ? '3' : '1.5'}
+                      strokeWidth={isSelected ? '3' : '2'}
                       className={`indoor-room-rect ${isSelected ? 'indoor-room-selected' : ''}`}
                       filter={isSelected ? 'url(#roomGlow)' : undefined}
+                    />
+
+                    {/* Architectural Door Swing Indicator */}
+                    <path
+                      d={`M ${rx} ${ry + Math.min(30, rh * 0.3)} L ${rx} ${ry + Math.min(65, rh * 0.65)}`}
+                      stroke="#ffffff"
+                      strokeWidth="3"
+                    />
+                    <path
+                      d={`M ${rx} ${ry + Math.min(30, rh * 0.3)} A ${Math.min(35, rh * 0.35)} ${Math.min(35, rh * 0.35)} 0 0 1 ${rx + Math.min(35, rh * 0.35)} ${ry + Math.min(65, rh * 0.65)}`}
+                      fill="none"
+                      stroke={theme.stroke}
+                      strokeWidth="1"
+                      strokeDasharray="3, 3"
                     />
 
                     {/* Room Number Badge */}
@@ -746,16 +830,16 @@ export default function IndoorFloorMap({
                       <rect
                         x="0"
                         y="0"
-                        width={Math.min(rw - 12, (room.roomNumber?.length || 4) * 7.5 + 8)}
-                        height="16"
+                        width={Math.min(rw - 12, (room.roomNumber?.length || 4) * 8 + 10)}
+                        height="18"
                         rx="4"
                         fill={isSelected ? '#005c55' : theme.stroke}
                       />
                       <text
-                        x="4"
-                        y="11"
+                        x="5"
+                        y="13"
                         fill="#ffffff"
-                        fontSize="9.5"
+                        fontSize="10"
                         fontWeight="700"
                         fontFamily="monospace"
                       >
@@ -767,9 +851,9 @@ export default function IndoorFloorMap({
                     {rh > 38 && (
                       <text
                         x={rx + 8}
-                        y={ry + 34}
+                        y={ry + 36}
                         fill="#0f172a"
-                        fontSize="11.5"
+                        fontSize="12"
                         fontWeight={isSelected ? '700' : '600'}
                         fontFamily="inherit"
                       >
@@ -781,9 +865,9 @@ export default function IndoorFloorMap({
                     {rh > 55 && (room.departmentCode || room.departmentName) && (
                       <text
                         x={rx + 8}
-                        y={ry + 48}
+                        y={ry + 50}
                         fill={theme.text}
-                        fontSize="9.5"
+                        fontSize="10"
                         fontWeight="600"
                         fontFamily="inherit"
                       >
@@ -828,6 +912,7 @@ export default function IndoorFloorMap({
                     tabIndex="0"
                     aria-label={`Asset ${asset.assetCode}: ${asset.assetName}`}
                     className="indoor-asset-marker"
+                    transform={`translate(${ax}, ${ay})`}
                     onClick={(e) => {
                       if (isPositioningMode) return;
                       e.stopPropagation();
@@ -844,71 +929,76 @@ export default function IndoorFloorMap({
                   >
                     <title>{`${asset.assetName} (${asset.assetCode})\nOperational Status: ${asset.status}\nLocation Status: ${formatLocationStatusLabel(asset.locationStatus)}\nRoom: ${asset.roomNumber || 'Corridor/Open Area'}\nCoordinates: (${posX.toFixed(1)}%, ${posY.toFixed(1)}%)\nSource: ${formatSourceLabel(asset.indoorLocationSource)}\nLast Updated: ${asset.indoorUpdatedAt ? new Date(asset.indoorUpdatedAt).toLocaleString() : 'N/A'}`}</title>
 
-                    {/* Radar Pulse Wave Ring */}
-                    <circle
-                      cx={ax}
-                      cy={ay}
-                      r="12"
-                      fill={statusTheme.pulse}
-                      className="indoor-radar-pulse"
-                    />
-
-                    {/* Selection Highlight Ring */}
-                    {isSelected && (
+                    {/* Scale marker graphics around (0, 0) preserving anchor coordinates */}
+                    <g transform={`scale(${markerScale.toFixed(3)})`}>
+                      {/* Radar Pulse Wave Ring */}
                       <circle
-                        cx={ax}
-                        cy={ay}
-                        r="18"
-                        fill="none"
-                        stroke="#005c55"
-                        strokeWidth="2.5"
-                        strokeDasharray="4, 3"
+                        cx="0"
+                        cy="0"
+                        r="16"
+                        fill={statusTheme.pulse}
+                        className="indoor-radar-pulse"
                       />
-                    )}
 
-                    {/* Outer Pin Body with drop shadow */}
-                    <circle
-                      cx={ax}
-                      cy={ay}
-                      r="10"
-                      fill={statusTheme.fill}
-                      stroke="#ffffff"
-                      strokeWidth="2.5"
-                      filter="url(#markerShadow)"
-                    />
+                      {/* Selection Highlight Ring */}
+                      {isSelected && (
+                        <circle
+                          cx="0"
+                          cy="0"
+                          r="22"
+                          fill="none"
+                          stroke="#005c55"
+                          strokeWidth="3"
+                          strokeDasharray="5, 3"
+                        />
+                      )}
 
-                    {/* Medical Cross / Asset Icon in Center */}
-                    <path
-                      d={`M ${ax - 4} ${ay} L ${ax + 4} ${ay} M ${ax} ${ay - 4} L ${ax} ${ay + 4}`}
-                      stroke="#ffffff"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-
-                    {/* Label Pill Under Marker */}
-                    <g transform={`translate(${ax}, ${ay + 15})`}>
-                      <rect
-                        x="-26"
-                        y="0"
-                        width="52"
-                        height="14"
-                        rx="7"
-                        fill={isSelected ? '#005c55' : '#1e293b'}
+                      {/* Outer Pin Body with drop shadow */}
+                      <circle
+                        id={`pin-${asset.id}`}
+                        cx="0"
+                        cy="0"
+                        r="12"
+                        fill={statusTheme.fill}
                         stroke="#ffffff"
-                        strokeWidth="1"
-                        opacity="0.95"
+                        strokeWidth="2.5"
+                        filter="url(#markerShadow)"
                       />
-                      <text
-                        x="0"
-                        y="10"
-                        textAnchor="middle"
-                        fill="#ffffff"
-                        fontSize="8.5"
-                        fontWeight="700"
-                        fontFamily="monospace"
-                      >
-                        {asset.assetCode}
-                      </text>
+
+                      {/* Medical Cross / Asset Icon in Center */}
+                      <path
+                        d="M -5 0 L 5 0 M 0 -5 L 0 5"
+                        stroke="#ffffff"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                      />
+
+                      {/* Label Pill Under Marker */}
+                      <g transform="translate(0, 18)">
+                        <rect
+                          x="-30"
+                          y="0"
+                          width="60"
+                          height="16"
+                          rx="8"
+                          fill={isSelected ? '#005c55' : '#1e293b'}
+                          stroke="#ffffff"
+                          strokeWidth="1.2"
+                          opacity="0.95"
+                          filter="url(#markerShadow)"
+                        />
+                        <text
+                          x="0"
+                          y="12"
+                          textAnchor="middle"
+                          fill="#ffffff"
+                          fontSize="9.5"
+                          fontWeight="700"
+                          fontFamily="monospace"
+                        >
+                          {asset.assetCode}
+                        </text>
+                      </g>
                     </g>
                   </g>
                 );
@@ -918,80 +1008,61 @@ export default function IndoorFloorMap({
               {isPositioningMode && pendingPoint && (
                 <g
                   className="target-reticle"
-                  style={{
-                    transformOrigin: `${(pendingPoint.x / 100) * canvasWidth}px ${(pendingPoint.y / 100) * canvasHeight}px`,
-                  }}
+                  transform={`translate(${(pendingPoint.x / 100) * canvasWidth}, ${(pendingPoint.y / 100) * canvasHeight})`}
                 >
-                  {/* Outer pulsating reticle */}
-                  <circle
-                    cx={(pendingPoint.x / 100) * canvasWidth}
-                    cy={(pendingPoint.y / 100) * canvasHeight}
-                    r="22"
-                    fill="rgba(2, 132, 199, 0.25)"
-                    stroke="#0284c7"
-                    strokeWidth="2"
-                    strokeDasharray="4, 3"
-                  />
+                  <g transform={`scale(${markerScale.toFixed(3)})`}>
+                    {/* Outer pulsating reticle */}
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="22"
+                      fill="rgba(2, 132, 199, 0.25)"
+                      stroke="#0284c7"
+                      strokeWidth="2"
+                      strokeDasharray="4, 3"
+                    />
 
-                  {/* Crosshair lines */}
-                  <line
-                    x1={(pendingPoint.x / 100) * canvasWidth - 28}
-                    y1={(pendingPoint.y / 100) * canvasHeight}
-                    x2={(pendingPoint.x / 100) * canvasWidth + 28}
-                    y2={(pendingPoint.y / 100) * canvasHeight}
-                    stroke="#0284c7"
-                    strokeWidth="1.5"
-                  />
-                  <line
-                    x1={(pendingPoint.x / 100) * canvasWidth}
-                    y1={(pendingPoint.y / 100) * canvasHeight - 28}
-                    x2={(pendingPoint.x / 100) * canvasWidth}
-                    y2={(pendingPoint.y / 100) * canvasHeight + 28}
-                    stroke="#0284c7"
-                    strokeWidth="1.5"
-                  />
+                    {/* Crosshair lines */}
+                    <line x1="-28" y1="0" x2="28" y2="0" stroke="#0284c7" strokeWidth="1.5" />
+                    <line x1="0" y1="-28" x2="0" y2="28" stroke="#0284c7" strokeWidth="1.5" />
 
-                  {/* Target Pin */}
-                  <circle
-                    cx={(pendingPoint.x / 100) * canvasWidth}
-                    cy={(pendingPoint.y / 100) * canvasHeight}
-                    r="11"
-                    fill="#0284c7"
-                    stroke="#ffffff"
-                    strokeWidth="2.5"
-                    filter="url(#markerShadow)"
-                  />
-
-                  {/* Target Center Dot */}
-                  <circle
-                    cx={(pendingPoint.x / 100) * canvasWidth}
-                    cy={(pendingPoint.y / 100) * canvasHeight}
-                    r="3.5"
-                    fill="#ffffff"
-                  />
-
-                  {/* Positioning Label Badge */}
-                  <g transform={`translate(${(pendingPoint.x / 100) * canvasWidth}, ${(pendingPoint.y / 100) * canvasHeight + 17})`}>
-                    <rect
-                      x="-38"
-                      y="0"
-                      width="76"
-                      height="15"
-                      rx="7.5"
+                    {/* Target Pin */}
+                    <circle
+                      cx="0"
+                      cy="0"
+                      r="12"
                       fill="#0284c7"
                       stroke="#ffffff"
-                      strokeWidth="1"
+                      strokeWidth="2.5"
+                      filter="url(#markerShadow)"
                     />
-                    <text
-                      x="0"
-                      y="11"
-                      textAnchor="middle"
-                      fill="#ffffff"
-                      fontSize="8.5"
-                      fontWeight="700"
-                    >
-                      NEW LOCATION
-                    </text>
+
+                    {/* Target Center Dot */}
+                    <circle cx="0" cy="0" r="3.5" fill="#ffffff" />
+
+                    {/* Positioning Label Badge */}
+                    <g transform="translate(0, 18)">
+                      <rect
+                        x="-38"
+                        y="0"
+                        width="76"
+                        height="16"
+                        rx="8"
+                        fill="#0284c7"
+                        stroke="#ffffff"
+                        strokeWidth="1"
+                      />
+                      <text
+                        x="0"
+                        y="12"
+                        textAnchor="middle"
+                        fill="#ffffff"
+                        fontSize="8.5"
+                        fontWeight="700"
+                      >
+                        NEW LOCATION
+                      </text>
+                    </g>
                   </g>
                 </g>
               )}

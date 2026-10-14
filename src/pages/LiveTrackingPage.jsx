@@ -596,10 +596,16 @@ export default function LiveTrackingPage() {
         ]);
 
         if (!isCurrent) return;
+        const fAssets = Array.isArray(assetsData) ? assetsData : [];
         setFloorRooms(Array.isArray(roomsData) ? roomsData : []);
-        setFloorAssets(Array.isArray(assetsData) ? assetsData : []);
+        setFloorAssets(fAssets);
         setSelectedRoom(null);
-        setSelectedFloorAsset(null);
+        if (selectedAssetId) {
+          const matched = fAssets.find((a) => a.id === selectedAssetId);
+          setSelectedFloorAsset(matched || null);
+        } else {
+          setSelectedFloorAsset(null);
+        }
       } catch (err) {
         console.error(`[LiveTracking] Failed to load floor details for ${selectedFloor.id}:`, err);
         if (isCurrent) {
@@ -619,17 +625,25 @@ export default function LiveTrackingPage() {
     return () => {
       isCurrent = false;
     };
-  }, [selectedFloor]);
+  }, [selectedFloor, selectedAssetId]);
 
   // Handle Opening the Indoor Floor Map View
-  const handleOpenIndoorMap = useCallback(async (bld) => {
-    const targetBuilding = bld || selectedBuilding || buildings[0];
+  const handleOpenIndoorMap = useCallback(async (bld, targetFloorId = null, targetAsset = null) => {
+    const activeAsset = targetAsset || (selectedAssetId ? assetsMap[selectedAssetId] : null);
+    let targetBuilding = bld;
+
+    if (!targetBuilding && activeAsset?.buildingId) {
+      targetBuilding = buildings.find((b) => b.id === activeAsset.buildingId) || null;
+    }
+    if (!targetBuilding) {
+      targetBuilding = selectedBuilding || buildings.find((b) => b.latitude != null && b.longitude != null) || buildings[0];
+    }
     if (!targetBuilding) return;
 
+    const desiredFloorId = targetFloorId || (activeAsset?.buildingId === targetBuilding.id ? activeAsset.floorId : null);
+
     setSelectedBuilding(targetBuilding);
-    setSelectedAssetId(null);
     setSelectedRoom(null);
-    setSelectedFloorAsset(null);
     setTrackingMode('INDOOR');
 
     setLoadingFloors(true);
@@ -637,16 +651,33 @@ export default function LiveTrackingPage() {
       const floors = await facilityService.getFloorsByBuilding(targetBuilding.id, true);
       const sorted = [...(floors || [])].sort((a, b) => (a.floorNumber ?? 0) - (b.floorNumber ?? 0));
       setSelectedBuildingFloors(sorted);
-      if (sorted.length > 0) {
-        setSelectedFloor(sorted[0]);
+
+      let chosenFloor = null;
+      if (desiredFloorId) {
+        chosenFloor = sorted.find((f) => f.id === desiredFloorId) || null;
+      }
+      if (!chosenFloor && selectedFloor && sorted.some((f) => f.id === selectedFloor.id)) {
+        chosenFloor = selectedFloor;
+      }
+      if (!chosenFloor && sorted.length > 0) {
+        chosenFloor = sorted[0];
+      }
+      setSelectedFloor(chosenFloor);
+
+      if (activeAsset && chosenFloor && activeAsset.floorId === chosenFloor.id) {
+        setSelectedFloorAsset(activeAsset);
+      } else {
+        setSelectedFloorAsset(null);
       }
     } catch (err) {
       console.error(`[LiveTracking] Failed to load floors for indoor map in ${targetBuilding.id}:`, err);
       setSelectedBuildingFloors([]);
+      setSelectedFloor(null);
+      setSelectedFloorAsset(null);
     } finally {
       setLoadingFloors(false);
     }
-  }, [selectedBuilding, buildings]);
+  }, [selectedBuilding, selectedFloor, selectedAssetId, assetsMap, buildings]);
 
   // Handle returning to Outdoor Campus Map
   const handleBackToCampus = useCallback(() => {
@@ -765,11 +796,27 @@ export default function LiveTrackingPage() {
   const handleSelectAsset = (asset) => {
     if (!asset) {
       setSelectedAssetId(null);
+      setSelectedFloorAsset(null);
       return;
     }
     setSelectedAssetId(asset.id);
     if (outletSelectAsset) {
       outletSelectAsset(asset);
+    }
+
+    // In Indoor mode: If asset has valid indoor building and floor, navigate to it
+    if (trackingMode === 'INDOOR' && asset.buildingId && asset.floorId) {
+      if (selectedBuilding?.id === asset.buildingId && selectedFloor?.id === asset.floorId) {
+        setSelectedFloorAsset(asset);
+        setSelectedRoom(null);
+      } else {
+        const targetBld = buildings.find((b) => b.id === asset.buildingId);
+        if (targetBld) {
+          handleOpenIndoorMap(targetBld, asset.floorId, asset);
+        }
+      }
+    } else if (trackingMode === 'INDOOR') {
+      setSelectedFloorAsset(null);
     }
   };
 
@@ -1027,7 +1074,14 @@ export default function LiveTrackingPage() {
               className={`btn d-flex align-items-center gap-1 ${
                 trackingMode === 'INDOOR' ? 'btn-stitch-primary shadow-sm' : 'btn-light border text-dark'
               }`}
-              onClick={() => handleOpenIndoorMap(selectedBuilding || mappedBuildings[0] || buildings[0])}
+              onClick={() => {
+                if (selectedAsset?.buildingId && selectedAsset?.floorId) {
+                  const targetBld = buildings.find((b) => b.id === selectedAsset.buildingId);
+                  handleOpenIndoorMap(targetBld, selectedAsset.floorId, selectedAsset);
+                } else {
+                  handleOpenIndoorMap(selectedBuilding || mappedBuildings[0] || buildings[0]);
+                }
+              }}
               disabled={buildings.length === 0}
             >
               <span className="material-symbols-outlined fs-6">apartment</span>
@@ -1241,6 +1295,7 @@ export default function LiveTrackingPage() {
                 selectedAsset={selectedFloorAsset}
                 onSelectAsset={(asset) => {
                   setSelectedFloorAsset(asset);
+                  setSelectedAssetId(asset.id);
                   setSelectedRoom(null);
                 }}
                 isPositioningMode={isPositioningMode}
