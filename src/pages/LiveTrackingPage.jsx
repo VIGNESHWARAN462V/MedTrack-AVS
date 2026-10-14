@@ -9,7 +9,7 @@ import facilityService from '../services/facilityService';
 import trackingSocketService, { SocketStatus } from '../services/trackingSocketService';
 import LiveTrackingMap from '../components/tracking/LiveTrackingMap';
 import IndoorFloorMap from '../components/tracking/IndoorFloorMap';
-import { getGpsTelemetryStatus } from '../utils/gpsTelemetry';
+import { getGpsTelemetryStatus, getGpsAccuracyCategory } from '../utils/gpsTelemetry';
 
 /**
  * Haversine Earth-distance calculation in meters.
@@ -782,25 +782,50 @@ export default function LiveTrackingPage() {
     let closestGeofence = null;
     let minDistance = Infinity;
 
+    const assetDeptCode = selectedAsset.department?.code || selectedAsset.departmentCode;
+    const assetDeptName = selectedAsset.department?.name || selectedAsset.departmentName ||
+      (typeof selectedAsset.department === 'string' ? selectedAsset.department : null);
+
+    let assignedDeptGeofence = null;
+    let assignedDeptDistance = null;
+
     geofences.forEach((geo) => {
-      if (!geo.active || geo.latitude == null || geo.longitude == null) return;
+      const geoLat = geo.centerLatitude ?? geo.latitude;
+      const geoLon = geo.centerLongitude ?? geo.longitude;
+      if (!geo.active || geoLat == null || geoLon == null) return;
+
       const dist = calculateHaversineMeters(
         selectedAsset.latitude,
         selectedAsset.longitude,
-        geo.latitude,
-        geo.longitude
+        geoLat,
+        geoLon
       );
-      if (dist !== null && dist < minDistance) {
+      if (dist === null) return;
+
+      const matchesDept =
+        (assetDeptCode && (geo.departmentCode === assetDeptCode || geo.code === assetDeptCode)) ||
+        (assetDeptName && (geo.departmentName?.toLowerCase() === assetDeptName.toLowerCase() ||
+                           geo.name?.toLowerCase().includes(assetDeptName.toLowerCase())));
+
+      if (matchesDept && (assignedDeptDistance === null || dist < assignedDeptDistance)) {
+        assignedDeptGeofence = geo;
+        assignedDeptDistance = dist;
+      }
+
+      if (dist < minDistance) {
         minDistance = dist;
         closestGeofence = geo;
       }
     });
 
-    if (!closestGeofence) return null;
-    const isInside = minDistance <= closestGeofence.radiusMeters;
+    const targetGeofence = assignedDeptGeofence || closestGeofence;
+    const targetDistance = assignedDeptGeofence ? assignedDeptDistance : minDistance;
+
+    if (!targetGeofence || targetDistance === null || !Number.isFinite(targetDistance)) return null;
+    const isInside = targetDistance <= targetGeofence.radiusMeters;
     return {
-      geofence: closestGeofence,
-      distanceMeters: minDistance,
+      geofence: targetGeofence,
+      distanceMeters: targetDistance,
       state: isInside ? 'INSIDE' : 'OUTSIDE',
     };
   }, [selectedAsset, geofences]);
@@ -1867,9 +1892,19 @@ export default function LiveTrackingPage() {
                     </div>
                     <div className="col-6">
                       <div className="text-muted" style={{ fontSize: '0.7rem' }}>ACCURACY</div>
-                      <div className="fw-semibold text-dark">
-                        {selectedAsset.gpsAccuracy != null ? `±${Math.round(selectedAsset.gpsAccuracy)}m` : '—'}
+                      <div className="fw-bold text-dark font-monospace">
+                        {selectedAsset.gpsAccuracy != null ? `±${Number(selectedAsset.gpsAccuracy).toFixed(1)}m` : '—'}
                       </div>
+                      {selectedAsset.gpsAccuracy != null && (
+                        <div className="mt-1">
+                          <span
+                            className={`badge ${getGpsAccuracyCategory(selectedAsset.gpsAccuracy).badgeClass}`}
+                            style={{ fontSize: '0.62rem' }}
+                          >
+                            {getGpsAccuracyCategory(selectedAsset.gpsAccuracy).label}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="col-6">
                       <div className="text-muted" style={{ fontSize: '0.7rem' }}>SPEED</div>
@@ -1880,8 +1915,32 @@ export default function LiveTrackingPage() {
                   </div>
                 </div>
 
+                {/* Explicit Low Precision / Coarse Location Warning Alert */}
+                {getGpsAccuracyCategory(selectedAsset.gpsAccuracy).isLowPrecision && (
+                  <div
+                    className="p-2 px-3 rounded-2 bg-warning-subtle text-warning-emphasis border border-warning-subtle small d-flex align-items-center gap-2 mb-3 shadow-sm"
+                    style={{ fontSize: '0.75rem' }}
+                    role="alert"
+                  >
+                    <span className="material-symbols-outlined fs-6 flex-shrink-0">warning</span>
+                    <div>
+                      <strong>Coarse Location Fix (±{Number(selectedAsset.gpsAccuracy).toFixed(1)}m):</strong> Large uncertainty radius reported by device browser GPS. Typical of indoor or cellular positioning.
+                    </div>
+                  </div>
+                )}
+
                 {/* Geofence Status Details */}
-                <div className="p-2 mb-3 rounded border" style={{ backgroundColor: '#f0fdf4' }}>
+                <div
+                  className="p-2 mb-3 rounded border"
+                  style={{
+                    backgroundColor:
+                      selectedAssetGeofenceAnalysis?.state === 'INSIDE'
+                        ? '#f0fdf4'
+                        : selectedAssetGeofenceAnalysis?.state === 'OUTSIDE'
+                        ? '#fefce8'
+                        : '#f8f9fa',
+                  }}
+                >
                   <div className="d-flex align-items-center justify-content-between mb-1">
                     <span className="fw-bold text-dark small">Applicable Geofence</span>
                     {selectedAssetGeofenceAnalysis ? (

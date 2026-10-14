@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { getGpsTelemetryStatus } from '../../utils/gpsTelemetry';
+import { getGpsTelemetryStatus, getGpsAccuracyCategory } from '../../utils/gpsTelemetry';
 
 /**
  * Helper component to pan/fit the map when selected target or hospital changes.
@@ -444,7 +444,12 @@ export default function LiveTrackingMap({
                         </div>
                         {asset.gpsAccuracy != null && (
                           <div className="text-muted small mb-1">
-                            <strong>Accuracy:</strong> ±{Math.round(asset.gpsAccuracy)}m
+                            <strong>Accuracy:</strong> ±{Number(asset.gpsAccuracy).toFixed(1)}m
+                            {getGpsAccuracyCategory(asset.gpsAccuracy).isLowPrecision && (
+                              <span className="badge bg-warning-subtle text-warning-emphasis ms-1" style={{ fontSize: '0.65rem' }}>
+                                COARSE
+                              </span>
+                            )}
                           </div>
                         )}
                         <div className="text-muted" style={{ fontSize: '0.7rem' }}>
